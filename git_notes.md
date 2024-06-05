@@ -1,4 +1,4 @@
-创建一个名为 *`makefile`* 的文件，该文件描述程序中文件之间的关系，并提供更新每个文件的命令
+创建一个名为 `makefile` 的文件，该文件描述程序中文件之间的关系，并提供更新每个文件的命令
 
 # 2 An Introduction to Makefiles
 ## 2.1 What a Rule Looks like
@@ -12,7 +12,7 @@ target ... : prerquisited ...
 
 `target`通常是由程序生成的文件的名称，或要执行的操作的名称，例如 'clean'。
 `prerequisites`是用作创建目标的输入的文件。
-`recipe`是使 *`make`* 执行的动作，在本文中翻译为指令。==注意：需要在每个`recipe`行的开头放置一个制表符！==
+`recipe`是使 `make` 执行的动作，（译者注：在本文中将 recipe 翻译为配方，之前想将其翻译为“指令”，但和 directive 的翻译会发生重合。由于文档内容较多，校对复杂，部分位置还是保留了将 recipe 翻译为 指令 的） 。==注意：需要在每个`recipe`行的开头放置一个制表符！==
 
 示例：
 ```
@@ -413,6 +413,200 @@ VPATH = src:../headers
 foo.o : foo.c defs.h hack.h
         cc -c $(CFLAGS) $< -o $@ # 译者注：推荐使用$<
 ```
+
+### 4.5.5 目录搜索与隐式规则
+在考虑隐式规则（请参阅[10 Using Implicit Rules](https://www.gnu.org/software/make/manual/make.html#Implicit-Rules)）时，也会搜索 `VPATH` 或 `vpath` 中指定的目录。
+
+例如，当文件 foo.o 没有显式规则时，*make* 会考虑隐式规则，例如编译 foo.c 的内置规则（如果该文件存在）。如果当前目录中缺少这样的文件，则会搜索相应的目录。如果在任何目录中都存在 foo.c（或在makefile中提到），则应用c编译的隐式规则。
+
+隐式规则的 recipe 通常会根据需要使用自动变量；因此，他们将使用目录搜索找到的文件名，而不需要额外的努力。
+
+### 4.5.6 链接库的目录搜索
+目录搜索以一种特殊的方式应用于与链接器一起使用的库。当您编写名称为“-lname”形式的先决条件时，此特殊功能就会发挥作用。（你可以看出这里发生了一些奇怪的事情，因为先决条件通常是文件名，而库的文件名通常看起来像 libname.a，而不是“-lname”。）
+
+当先决条件的名称的形式为“-lname”时，*make* 对其进行特殊处理，先搜索文件 `libname.so`，如果找不到，则在当前目录中，或在匹配的 vpath 搜索路径和 VPATH 搜索路径指定的目录中，然后在 `/lib`、`/usr/lib`和 `prefix/lib` 目录（通常为 `/usr/local/lib` ，但MS-DOS/MS Windows版本的make的行为就像前缀被定义为 DJGPP 安装树的根一样）中搜索 `libname.a`。
+
+例如，如果您的系统上有 `/usr/lib/libccurses.a` 库（而没有 `/usr/lib/lipccurses.so` 文件），那么
+
+```Makefile
+foo : foo.c -lcurses
+        cc $^ -o $@
+```
+
+当 foo 比 foo.c 或 `/usr/lib/libccurses.a` 旧时，将执行命令 `cc foo.c /usr/lib/libcurses.a -o foo`。
+
+尽管要搜索的默认文件集是 `libname.so` 和 `libname.a` ，但这是可以通过 `.LIBPATTERNS` 变量自定义的。此变量值中的每个单词都是一个模式字符串。当看到诸如“-lname”之类的先决条件时，*make* 将用 *name* 替换列表中每个模式中的百分号(%)，并使用每个库文件名执行上述目录搜索。
+
+`.LIBPATTERNS` 的默认值 是 `lib%.so lib%.a`，它提供了上述默认行为。通过将此变量设置为空值，可以完全关闭链接库扩展。
+
+## 4.6 伪目标(Phony Targets)
+一个伪目标并不是一个文件的真正名称；相反，它只是当您发出明确请求时要执行的 recipe 的名称。使用伪目标有两个原因：一是为了避免与同名文件发生冲突，二是为了提高性能。
+
+如果您编写的规则的 recipe 不会创建目标文件，则每次出现要重新制作的目标时都会执行该 recipe。以下是一个示例：
+
+```makefile
+clean:
+        rm *.o temp
+```
+因为 rm 命令不会创建名为 clean 的文件，所以可能永远不会存在这样的文件。因此，每次您输入 "_make clean_" 时，都会执行 rm 命令。
+
+在本例中，如果在此目录中创建了名为 clean 的文件，则clean目标将无法正常工作。由于它没有先决条件，clean 总是被认为是最新的，它的 recipe 不会被执行。为了避免这个问题，您可以通过**将目标作为特殊目标 .PHONY（见[4.9 Special Built-in Target Names]的先决条件来明确声明它是假的**。如下：
+
+```makefile
+.PHONY: clean
+clean:
+        rm *.o temp
+```
+
+完成此操作后，无论是否有名为 clean 的文件，"_make clean_" 都将运行该 recipe 。
+
+.PHONY 的先决条件总是被解释为字面上的目标名称，而不是模式(pattern)（即使它们包含“%”字符）。若要始终重新生成模式规则(pattern rule)，请考虑使用“force target”（请参阅 [4.7  Rules without Recipes or Prerequisites](https://www.gnu.org/software/make/manual/make.html#Force-Targets)）。
+
+伪目标与 make 的递归调用结合使用也很有用（请参见 [5.7  Recursive Use of make](https://www.gnu.org/software/make/manual/make.html#Recursion)）。在这种情况下，makefile通常会包含一个变量，该变量列出了要构建的多个子目录。处理这一问题的一种简单方法是定义一个 recipe 在子目录上循环的规则，如下所示：
+
+```makefile
+SUBDIRS = foo bar baz
+
+subdirs:
+        for dir in $(SUBDIRS); do \
+          $(MAKE) -C $$dir; \
+        done
+```
+
+然而，这种方法也存在问题。首先，此规则会忽略在 sub-make 中检测到的任何错误，因此即使失败，它也会继续生成其余目录。这可以通过添加 shell 命令来记录错误并退出来的方式克服，但即使使用 -k 选项调用make，它也会这样做，这很不幸。第二点（但也许更重要的一点），您不能充分利用 make 的并行构建目标的能力（请参阅 [5.4 Parallel Execution](https://www.gnu.org/software/make/manual/make.html#Parallel)），因为只有一个规则。每个 makefile 的目标都将并行构建，但一次只能构建一个子目录。
+
+通过将子目录声明为伪目标（您必须这样做，因为子目录显然总是存在的；否则它将无法构建）您可以消除这些问题。
+
+```makefile
+SUBDIRS = foo bar baz
+
+.PHONY: subdirs $(SUBDIRS)
+
+subdirs: $(SUBDIRS)
+
+$(SUBDIRS):
+        $(MAKE) -C $@
+
+foo: baz
+```
+
+这里我们还声明，在子目录 _baz_ 完成之前，不能构建子目录 _foo_；当尝试并行构建时，这种关系声明尤其重要。
+
+隐式规则搜索（请参阅 [10 Using Implicit Rules](https://www.gnu.org/software/make/manual/make.html#Implicit-Rules)）将跳过伪目标。这就是为什么将目标声明为伪目标的性能很好，即使您不担心实际存在的文件。
+
+伪目标不应该是真实目标文件的先决条件；如果是，则每次 make 考虑该文件时都会运行其 recipe (译者注，这里"考虑"的翻译可能有问题，原文是：its recipe will be run every time make considers that file)。只有当伪目标不是真正目标的先决条件时，伪目标的 recipe 才会仅在伪目标作为被指定目标时（请参阅 [9.2 Arguments to Specify the Goals](https://www.gnu.org/software/make/manual/make.html#Goals)）被执行。
+
+您不应该将包含的 makefile 声明为伪。伪目标并不代表真实的文件，而且由于伪目标总是被认为是过时的，所以 make 总是会重新生成它，然后重新执行它自己（请参见 [3.5 How Makefiles Are Remade](https://www.gnu.org/software/make/manual/make.html#Remaking-Makefiles)）。为了避免这种情况，如果重新构建了标记为假的包含文件，make 将不会重新执行自己。
+
+伪目标可能有先决条件。当一个目录包含多个程序时，在一个生成文件 _./Makefile_ 中描述所有程序是最方便的。由于默认情况下重新生成的目标将是 makefile 中的第一个目标，因此通常会将其作为名为 “all” 的伪目标，并将所有单独的程序作为先决条件。例如
+
+```makefile
+all : prog1 prog2 prog3
+.PHONY : all
+
+prog1 : prog1.o utils.o
+        cc -o prog1 prog1.o utils.o
+
+prog2 : prog2.o
+        cc -o prog2 prog2.o
+
+prog3 : prog3.o sort.o utils.o
+        cc -o prog3 prog3.o sort.o utils.o
+```
+
+现在你可以输入 “make” 来重新制作所有三个程序，或者将要重新制作的程序作为参数进行指定（如“make prog1 prog3”）。伪性(Phoniness)不是继承的：伪目标的先决条件本身并不是伪的，除非明确声明是伪的。
+
+当一个伪目标是另一个伪目标的先决条件时，它就充当了另一个伪目标的子程序。例如，此处的“make-cleanall”将删除目标文件、差异文件和名称为 _program_ 的文件：
+
+```makefile
+.PHONY: cleanall cleanobj cleandiff
+
+cleanall : cleanobj cleandiff
+        rm program
+
+cleanobj :
+        rm *.o
+
+cleandiff :
+        rm *.diff
+```
+
+## 4.7 没有 Recipes 或 Prerequisites 的 Rule
+如果一个规则没有先决条件或配方，并且该规则的目标是一个不存在的文件，那么每当运行该规则时，*make* 就会假设该目标已经更新。这意味着所有依赖于此目标的目标都将始终运行其配方（译者注，这里的意思应该是因为先决条件新于目标，所以配方才会运行）。
+
+一个例子将说明这一点：
+```makefile
+clean: FORCE
+        rm $(objects)
+FORCE:
+```
+
+在这里，目标“FORCE”满足特殊条件，因此依赖它的目标 clean 被迫运行其配方。“FORCE”这个名字并没有什么特别之处，但这是一个常用的名字。
+
+正如您所看到的，以这种方式使用“FORCE”与使用“,PHONY: clean”具有相同的结果。
+
+正在使用“.PHONY”更明确、更高效。但是，make的其他版本不支持“.PHONY”；因此“FORCE”出现在许多makefile中。
+
+## 4.8 空目标文件以记录事件
+空目标是伪目标的变体；它用于保存您偶尔发出的明确操作请求的配方。与伪目标不同，此目标文件可以真实存在；但文件的内容并不重要，并且通常是空的。
+
+空目标文件的目的是记录规则的配方最后一次执行的时间及其最后一次修改时间。这样做是因为配方中的一个命令是用于更新目标文件的 `touch` 命令。
+
+空的目标文件应该有一些先决条件（否则就没有意义了）。当你要求重制空目标时，如果任何先决条件比目标更新(换言之，如果自上次重新制作目标后，先决条件发生了更改)，就会执行该配方；以下是一个示例：
+
+```
+print: foo.c bar.c
+        lpr -p $?
+        touch print
+```
+
+使用此规则，如果自上次 “make-print” 以来任何一个源文件发生了更改，则 “make-praint” 将执行 `lpr` 命令。自动变量“$？”用于仅打印那些已更改的文件（请参阅 [10.5.3 Automatic Variables](https://www.gnu.org/software/make/manual/make.html#Automatic-Variables)）。
+
+## 4.9 特殊内置目标名称
+某些名称如果作为目标出现，则具有特殊含义。
+
+.PHONY
+    特殊目标 .PHONY 的先决条件被认为是伪目标。当需要考虑这样一个目标时，_make_ 将无条件地运行其配方，无论是否存在具有该名称的文件或其上次修改时间是多少。请参阅 [4.6 Phony Targets](https://www.gnu.org/software/make/manual/make.html#Phony-Targets)。
+
+.SUFFIXES
+    特殊目标 .SUFFIXES 的先决条件是用于检查后缀规则的后缀列表。请参阅 [10.7 Old-Fashioned Suffix Rules](https://www.gnu.org/software/make/manual/make.html#Suffix-Rules)。
+
+.DEFAULT
+
+.PRECIOUS
+
+.INTERMEDIATE
+
+.NOTINTERMEDIATE
+
+.SECONDARY
+
+.SECONDEXPANSION
+
+.DELETE_ON_ERROR
+
+.IGNORE
+
+.LOW_RESOLUTION_TIME
+
+.SILENT
+
+.EXPORT_ALL_VARIABLES
+
+.NOTPARALLEL
+
+.ONESHELL
+
+.POSIX
+    如果 .POSIX 被提到作为目标，那么 makefile 将被解析并以符合 POSIX 的模式运行。这并不意味着只有符合POSIX 的 makefile 才会被接受，所有高级 GNU make 功能仍然可用。然而，这个目标会导致 make 在默认行为不同的区域按照 POSIX 的要求进行操作。
+    特别是，如果提到了这个目标，那么配方将被调用，就像 shell 被传递了 -e 标志一样：配方中的第一个失败命令将导致配方立即失败。
+
+任意定义的隐式规则后缀如果以目标的形式呈现，那么它也将被视为特殊目标，两个后缀的串联也将被算作特殊目标，例如 “.c.o”。这些目标是后缀规则(suffix rule)，这是一种过时的定义隐式规则的方式（但仍被广泛使用）。原则上，如果您将任何目标名称一分为二并将其添加到后缀列表中，则任何目标名称都可能是特殊的。在实践中，后缀通常以“.”开头，所以这些特殊的目标名称也以“.”开头。请参阅 [10.7 Old-Fashioned Suffix Rules](https://www.gnu.org/software/make/manual/make.html#Suffix-Rules)。
+
+## 4.10 规则中的多个目标
+
+## 4.11 一个目标的多个规则
+
 ## 4.12 静态模式规则
 
 静态模式规则(_Static pattern rules_)是指定多个目标并根据目标名称为每个目标构造先决条件名称的规则。它们比具有多个目标的普通规则更通用，因为目标不必具有相同的先决条件。它们的 prerequisites 必须相似，但不一定相同。
@@ -475,6 +669,11 @@ bigoutput littleoutput : %output : text.g
 由于以下原因，静态模式规则可能比隐式规则更好：
 - 您可能希望覆盖那些名称无法在语法上分类但可以在显式列表中给出的文件的普通隐式规则。
 - 如果您不能确定所使用目录的精确内容，您可能无法确定哪些其他不相关的文件可能会导致使用错误的隐式规则。选择可能取决于隐式规则搜索的顺序。使用静态模式规则，没有不确定性：每个规则都精确地应用于指定的目标。
+
+## 4.13 双冒号规则
+
+## 4.14 自动生成先决条件
+
 # 5 Writing Recipes in Rules
 
 ### 5.7.2 与 Sub-make 互相传递变量
