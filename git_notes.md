@@ -1,3 +1,13 @@
+# GNU make 手册 个人中译版
+
+Copyright (C)  2024  JohnSyu.
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with no Invariant Sections, no Front-Cover Texts, and no Back-Cover
+Texts.  A copy of the license is included in the section entitled ``GNU
+Free Documentation License''.
+
 创建一个名为 `makefile` 的文件，该文件描述程序中文件之间的关系，并提供更新每个文件的命令
 
 # 2 An Introduction to Makefiles
@@ -12,7 +22,7 @@ target ... : prerquisited ...
 
 `target`通常是由程序生成的文件的名称，或要执行的操作的名称，例如 'clean'。
 `prerequisites`是用作创建目标的输入的文件。
-`recipe`是使 `make` 执行的动作，（译者注：在本文中将 recipe 翻译为配方，之前想将其翻译为“指令”，但和 directive 的翻译会发生重合。由于文档内容较多，校对复杂，部分位置还是保留了将 recipe 翻译为 指令 的） 。==注意：需要在每个`recipe`行的开头放置一个制表符！==
+`recipe`是使 `make` 执行的动作，（译者注：在本文中将 recipe 翻译为配方，之前想将其翻译为“指令”，但和 directive 的翻译会发生重合。由于文档内容较多，校对复杂，部分位置还是保留了将 recipe 翻译为 指令 的） 。注意：需要在每个`recipe`行的开头放置一个制表符！
 
 示例：
 ```
@@ -95,10 +105,10 @@ clean :
 
 ```
 objects = main.o kbd.o command.o display.o \
-          insert.o search.o files.o utils.o
+    insert.o search.o files.o utils.o
 
 edit : $(objects)
-        cc -o edit $(objects)
+    cc -o edit $(objects)
 
 main.o : defs.h
 kbd.o : defs.h command.h
@@ -111,12 +121,12 @@ utils.o : defs.h
 
 .PHONY : clean
 clean :
-        rm edit $(objects)
+    rm edit $(objects)
 ```
 
 ## 2.6 Makefile的另一种形式
 
-当makefile的object==仅由隐式规则创建时==，makefile的另一种风格是可能的。在这种makefile风格中，可以按prerequisites而不是target对条目进行分组。
+当 makefile 的 object **仅由隐式规则创建时**，makefile的另一种风格是可能的。在这种makefile风格中，可以按prerequisites而不是target对条目进行分组。
 
 ```
 objects = main.o kbd.o command.o display.o \
@@ -130,7 +140,7 @@ kbd.o command.o files.o : command.h
 display.o insert.o search.o files.o : buffer.h
 ```
 
-这种方式==不一定更好==。
+这种方式不一定更好。
 
 ## 2.7 清理目录的规则
 
@@ -144,7 +154,7 @@ clean :
         -rm edit $(objects)
 ```
 
-==像这样的规则不应该放在makefile的开头，因为我们不希望它默认运行。==
+像这样的规则不应该放在makefile的开头，因为我们不希望它默认运行。
 
 # 3 Writing Makefiles
 
@@ -178,7 +188,7 @@ Makefile使用“基于行”的语法。GNU make对语句行的长度没有限�
 
 处理反斜杠及换行符组合的方式取决于语句是recipe行还是非recipe行。处理recipe行中的反斜杠及换行符组合将在后面讨论，见[5.1.1 Splitting Recipe Lines](https://www.gnu.org/software/make/manual/make.html#Splitting-Recipe-Lines)
 
-在recipe行之外，反斜杠及换行符组合将转换为单个空格字符。完成后，反斜杠及换行符组合==周围的所有空格都将压缩为单个空格==：这包括反斜杠之前的所有空格、反斜杠/换行符之后行首的所有空格以及任何连续的反斜杠/换行符组合。
+在recipe行之外，反斜杠及换行符组合将转换为单个空格字符。完成后，反斜杠及换行符组合**周围的所有空格都将压缩为单个空格**：这包括反斜杠之前的所有空格、反斜杠/换行符之后行首的所有空格以及任何连续的反斜杠/换行符组合。
 
 #### Splitting Without Adding Whitespace
 
@@ -223,9 +233,9 @@ var := oneword
 
 ## 3.7 How `make` Reads a Makefile
 
-GNU make的工作分为两个不同的阶段。在第一阶段，它读取所有makefile，并内化==所有==变量及其值以及隐式和显式规则，并构建所有目标及其 prerequisites 的依赖关系图。在第二阶段，make使用这些内化数据来确定哪些 targets 需要更新，并运行更新它们所需的 recipe。
+GNU make的工作分为两个不同的阶段。在第一阶段，它读取所有makefile，并内化**所有**变量及其值以及隐式和显式规则，并构建所有目标及其 prerequisites 的依赖关系图。在第二阶段，make使用这些内化数据来确定哪些 targets 需要更新，并运行更新它们所需的 recipe。
 
-在第一阶段，变量及函数拓展是 immedia，相对的，也有 deferred 的拓展。==理解这两个概念是重要的==，详见 [3.7 How make Reads a Makefile](https://www.gnu.org/software/make/manual/make.html#Reading-Makefiles)
+在第一阶段，变量及函数拓展是 immedia，相对的，也有 deferred 的拓展。理解这两个概念是重要的，详见 [3.7 How make Reads a Makefile](https://www.gnu.org/software/make/manual/make.html#Reading-Makefiles)
 
 对于shell赋值操作符 `!=` , 右侧立即计算并交给shell。结果存储在左侧命名的变量中，该变量被视为递归扩展变量（因此将在每个引用上重新计算）。
 ## 3.8 How Makefiles Are Parsed
@@ -603,33 +613,123 @@ print: foo.c bar.c
 
 任意定义的隐式规则后缀如果以目标的形式呈现，那么它也将被视为特殊目标，两个后缀的串联也将被算作特殊目标，例如 “.c.o”。这些目标是后缀规则(suffix rule)，这是一种过时的定义隐式规则的方式（但仍被广泛使用）。原则上，如果您将任何目标名称一分为二并将其添加到后缀列表中，则任何目标名称都可能是特殊的。在实践中，后缀通常以“.”开头，所以这些特殊的目标名称也以“.”开头。请参阅 [10.7 Old-Fashioned Suffix Rules](https://www.gnu.org/software/make/manual/make.html#Suffix-Rules)。
 
-## 4.10 规则中的多个目标
+## 4.10 一条规则中包含多个目标
+当一个显式规则有多个目标时，可以用两种可能的方式之一处理它们：作为独立目标或组目标。处理它们的方式由目标列表后出现的分隔符决定。
 
-## 4.11 一个目标的多个规则
+**具有独立目标的规则**
+
+使用标准目标分隔符 `:` 的规则定义独立目标。这相当于为每个目标编写一次相同的规则，即前提条件和配方是重复的。通常，配方会使用诸如 `$@` 之类的自动变量来指定正在构建的目标。
+
+具有独立目标的规则在两种情况下很有用：
+
+- 你只需要先决条件，不需要配方。例如
+
+```makefile
+kbd.o command.o files.o: command.h
+```
+
+为上述三个对象文件中的每一个提供了一个附加的先决条件。它相当于写：
+
+```makefile
+kbd.o: command.h
+command.o: command.h
+files.o: command.h
+```
+
+- 类似的配方适用于所有目标。自动变量 `$@` 可用于替换要重新映射到命令中的特定目标（请参见[10.5.3 Automatic Variables](https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html)）。例如：
+
+```makefile
+bigoutput littleoutput : text.g
+    generate text.g -$(subst output,,$@) > $@
+```
+
+相当于
+
+```makefile
+bigoutput : text.g
+    generate text.g -big > bigoutput
+littleoutput : text.g
+    generate text.g -little > littleoutput
+```
+
+在这里，我们假设程序 `program` 生成两种类型的输出，一种是给定 “-big” 的输出，另一种是假定给定 “-little” 的输出。有关子函数的解释，请参见 [8.2 Functions for String Substitution and Analysis](https://www.gnu.org/software/make/manual/html_node/Text-Functions.html)。
+
+假设您想根据目标更改先决条件，就像变量 `$@` 允许您更改配方一样。在普通规则中不能对多个目标执行此操作，但可以使用静态模式规则执行此操作。
+
+**组目标的规则**
+
+您有一个可以通过一次调用就生成多个文件的配方，而不是独立的目标，那么您可以使用组目标(grouped targets)来声明规则从而表达这种关系。组目标规则使用分隔符 `&:`（此处的“&”表示“all”）。
+
+当 *make* 构建任何一个组目标时，它会认为组中的所有其他目标也会因调用配方而更新。此外，如果只有一些组目标过期或丢失，*make* 将意识到运行配方将更新所有目标。最后，如果任何组目标已过期，则所有组目标都将被视为过期。
+
+例如，此规则定义了一个组目标：
+
+```makefile
+foo bar biz &: baz boz
+    echo $^ > foo
+    echo $^ > bar
+    echo $^ > biz
+```
+
+在执行组目标的配方期间，自动变量 `$@` 被设置为触发规则的组中特定目标的名称。如果在组目标规则的配方中依赖此变量，则必须小心。
+
+与独立目标不同，组目标规则**必须**包括配方。然而，作为组目标的成员中的目标也可能出现在没有配方的独立目标规则定义中。
+
+每个目标可能只有一个关联的配方。如果一个组目标出现在一个独立的目标规则中，或者出现在另一个带有配方的组目标规则中时，您将收到警告，后一个配方将取代前一个配方。此外，目标将从以前的组中删除，并仅显示在新组中。
+
+如果希望一个目标出现在多个组中，则在声明包含该目标的所有组时，必须使用双冒号组的目标分隔符 `&::`。组的双冒号目标分别独立考虑，如果多个目标中至少有一个需要更新，则每个分组的双冒号规则的配方最多执行一次。
+
+## 4.11 多条规则的目标相同
+一个文件可以是多条规则的目标。**所有规则中提到的所有先决条件都合并到目标的一个先决条件列表中。如果目标比任何规则中的任何先决条件都旧，则执行配方**。
+
+对一个文件来说只能有一个配方被执行。如果多个规则为相同文件提供了配方，*make* 将使用最后一个规则并打印一条错误消息。（在特殊情况下，如果文件名以句点开头，则不会打印错误消息。这种奇怪的行为只是为了与 “make…” 的其他实现兼容，您应该避免使用它）。有时，让同一个目标调用在makefile的不同部分中定义的多个配方是有用的；您可以使用双冒号规则（请参阅 [4.13 Double-Colon Rules](https://www.gnu.org/software/make/manual/html_node/Double_002dColon.html)）。
+
+一个只有先决条件的额外规则可以用于同时为多个文件提供一些额外的先决条件。例如，makefile通常有一个变量，如 *objects*，其中包含正在生成的系统中所有编译器输出文件的列表。如果config.h发生更改，则必须重新编译所有这些文件的一个简单方法是编写以下内容：
+
+```makefile
+objects = foo.o bar.o
+foo.o : defs.h
+bar.o : defs.h test.h
+$(objects) : config.h
+```
+
+它可以插入或取出，而无需更改真正指定如何制作对象文件的规则，如果您希望间歇性地添加额外的先决条件，则可以方便地使用它。
+
+另一个问题是，可以使用传递给 *make* 的命令行参数中设置的变量来指定附加的先决条件（请参见 [9.5 Overriding Variables](https://www.gnu.org/software/make/manual/html_node/Overriding.html)）。例如
+
+```makefile
+extradeps=
+$(objects) : $(extradeps)
+```
+
+意味着命令 “make extradeps=foo.h” 将把 foo.h 视为每个对象文件的先决条件，而普通的 “make” 则不会。
+
+如果目标的显式规则都没有配方，则搜索适用的隐式规则以找到一个（请参阅 [10 Using Implicit Rules](https://www.gnu.org/software/make/manual/html_node/Implicit-Rules.html)）。
 
 ## 4.12 静态模式规则
 
-静态模式规则(_Static pattern rules_)是指定多个目标并根据目标名称为每个目标构造先决条件名称的规则。它们比具有多个目标的普通规则更通用，因为目标不必具有相同的先决条件。它们的 prerequisites 必须相似，但不一定相同。
-### 4.12.1 静态模式规则语法
+静态模式规则(_Static pattern rules_) 是指定多个目标并根据目标名称为每个目标构造先决条件名称的规则。它们比具有多个目标的普通规则更通用，因为目标不必具有相同的先决条件。它们的先决条件必须相似，但不一定相同。
 
-```
+### 4.12.1 静态模式规则语法
+以下是静态模式规则的语法：
+```makefile
 targets …: target-pattern: prereq-patterns …
         recipe
         …
 ```
 
-_targets list_ 指定规则应用的目标。目标可以包含通配符，就像普通规则的目标一样(参阅[4.4 Using Wildcard Characters in File Names](https://www.gnu.org/software/make/manual/make.html#Wildcards))
+*targets list* 指定规则应用的目标。目标可以包含通配符，就像普通规则的目标一样(参阅 [4.4 Using Wildcard Characters in File Names](https://www.gnu.org/software/make/manual/make.html#Wildcards))
 
-`target-pattern` and `prereq-patterns`说明了如何计算每个 target 的 prerequisite。每个目标都与 `target-pattern` 匹配，以提取目标名称的一部分，称为词干(_stem_)。该 _stem_ 被替换到每个 `prereq-patterns` 中，以生成 prerequisite 名称（每个 `prereq-patterns` 一个）。
+*target-pattern* and *prereq-patterns* 说明了如何计算每个 目标 的 先决条件。每个目标都与 *target-pattern* 匹配，以提取目标名称的一部分，称为词干(*stem*)。该 *stem* 被替换到每个 `prereq-patterns` 中，以生成 先决条件名称（每个 *prereq-patterns* 生成一个）。
 
-每个 pattern 通常只包含一次字符“%”。当 `target-pattern` 匹配目标时，“%”可以匹配 target name 的任何部分；这部分称为词干(stem)。pattern 的其余部分必须完全匹配。例如，目标 foo. o 匹配模式 `%.o` 时，stem 是 “foo”。目标 foo.c 和 foo.out 不匹配该 pattern。
+每个 pattern 通常只包含一次字符“%”。当 *target-pattern* 匹配目标时，“%”可以匹配 目标名称 的任何部分；这部分称为词干(stem)。pattern 的其余部分必须完全匹配。例如，目标 foo. o 匹配模式 "%.o" 时，stem 是 “foo”。目标 foo.c 和 foo.out 不匹配该 pattern。
 
 每个 target 的 prerequisite names 是通过将每个 `prereq-patterns` 式中的 `%` 替换为 stem 来确定的。例如，如果一个 `prereq-patterns` 是 %. c，那么将 stem “foo”替换为 prerequisite names 'foo.c'。编写一个不包含“%”的`prereq-patterns`是合法的；那么这个 prerequisite 对所有目标都是一样的。
 
-pattern rules 中的“%”字符可以用前置反斜杠 `\`  进行转义(quote)。用于转义 % 的前置反斜杠可以被更多的潜质反斜杠转义。用于转义 % 和 `\` 的转义符号反斜杠会在与文件名进行比较或替换 stem 之前从模式中删除。但，不是用于转义 % 的 `\` 不受影响例如，`the\%weird\\%pattern\\` 的结果是 `the%weird\%pattern\\`
+pattern rules 中的“%”字符可以用前置反斜杠 `\`  进行转义(quote)。用于转义 % 的前置反斜杠可以被更多的前置反斜杠转义。用于转义 % 和 `\` 的转义符号反斜杠会在与文件名进行比较或替换 stem 之前从模式中删除。但，不是用于转义 % 的 `\` 不受影响，例如，`the\%weird\\%pattern\\` 的结果是 `the%weird\%pattern\\`
 
-这是一个示例，它从相应的 . c文件编译 foo.o 和 bar.o 中的每一个：
-```
+这是一个示例，它从相应的 .c 文件编译 foo.o 和 bar.o 中的每一个：
+```makefile
 objects = foo.o bar.o
 
 all: $(objects)
@@ -638,9 +738,9 @@ $(objects): %.o: %.c
         $(CC) -c $(CFLAGS) $< -o $@
 ```
 
-指定的每个 target 都必须与 target pattern 匹配；当出现不匹配的 target 时会发出警告。如果您有一个文件列表，其中只有一些与 pattern 匹配，您可以使用 _filter_ 函数删除不匹配的文件名，参阅[8.2 Functions for String Substitution and Analysis](https://www.gnu.org/software/make/manual/make.html#Text-Functions))
+指定的每个 *target* 都必须与 *target pattern* 匹配；当出现不匹配的 target 时会发出警告。如果您有一个文件列表，其中只有一些与 pattern 匹配，您可以使用 `filter` 函数删除不匹配的文件名，参阅 [8.2 Functions for String Substitution and Analysis](https://www.gnu.org/software/make/manual/make.html#Text-Functions))
 
-```
+```makefile
 files = foo.elc bar.o lose.o
 
 $(filter %.o,$(files)): %.o: %.c
@@ -648,31 +748,112 @@ $(filter %.o,$(files)): %.o: %.c
 $(filter %.elc,$(files)): %.elc: %.el
         emacs -f batch-byte-compile $<
 ```
-在本例中，`$(filter%. o，$(files))`的结果是bar.o lose.o，第一个静态模式规则通过编译相应的C源文件来更新这些目标文件。`$(filter%.elc，$(file))`的结果是 foo.elc ，因此该文件是由 foo.el 制作的。
+在本例中，`$(filter%. o，$(files))` 的结果是 bar.o lose.o，第一个静态模式规则通过编译相应的C源文件来更新这些目标文件。`$(filter%.elc，$(file))`的结果是 foo.elc ，因此该文件是由 foo.el 制作的。
 
 另一个示例展示了如何在静态模式规则中使用`$*`：
 
-```
+```makefile
 bigoutput littleoutput : %output : text.g
         generate text.g -$* > $@
 ```
-当 `generate` 命令运行时，`$*` 将扩展到 stem ，要么是 'big'，要么是 'little'。
+当 `generate` 命令运行时，`$*` 将扩展到词干 ，要么是 'big'，要么是 'little'。
 
 ### 4.12.2 静态模式规则与隐式规则
 
-静态模式规则与定义为模式规则的隐式规则有很多共同点（请参阅 [10.5 Defining and Redefining Pattern Rules](https://www.gnu.org/software/make/manual/make.html#Pattern-Rules)）。两者都有目标模式和构造先决条件名称的模式。区别在于 `make` 如何决定何时应用规则。
+静态模式规则与定义为模式规则的隐式规则有很多共同点（请参阅 [10.5 Defining and Redefining Pattern Rules](https://www.gnu.org/software/make/manual/make.html#Pattern-Rules)）。两者都有目标模式(a pattern for the target)和构造先决条件名称的模式(patterns for constructing the names of prerequisites)。区别在于 `make` 如何决定何时应用规则。
 
-隐式规则可以应用于与其模式匹配的任何目标，但它仅在目标没有其他指定的 recipe 时才适用，并且仅在可以找到 prerequisites 时才适用。如果出现多个隐式规则都可能适用，则只有一个适用；选择取决于规则的顺序。
+隐式规则可以应用于与其模式匹配的任何目标，但它仅在目标没有其它指定的 配方(recipe) 时、并且可以找到 先决条件 时才适用。如果出现多个隐式规则都可能适用，则只有一个适用；选择取决于规则的顺序。
 
-相比之下，静态模式规则适用于您在规则中指定的精确目标列表。它不能应用于任何其他目标，并且总是适用于指定的每个目标。如果两个冲突的规则适用，并且都有 recipe ，那就是错误。
+相比之下，静态模式规则精确地适用于您在规则中指定的目标列表。它不能应用于任何其他目标，并且总是适用于指定的每个目标。如果两个冲突的规则适用，并且都有 配方(recipe) ，那就是错误。
 
 由于以下原因，静态模式规则可能比隐式规则更好：
-- 您可能希望覆盖那些名称无法在语法上分类但可以在显式列表中给出的文件的普通隐式规则。
-- 如果您不能确定所使用目录的精确内容，您可能无法确定哪些其他不相关的文件可能会导致使用错误的隐式规则。选择可能取决于隐式规则搜索的顺序。使用静态模式规则，没有不确定性：每个规则都精确地应用于指定的目标。
+- 对于那些名称无法在语法上分类但可以在显式列表中给出的文件，您可能希望覆盖这些文件的普通隐式规则。
+- 如果您不能确定所使用目录的精确内容，您可能无法确定哪些其他不相关的文件可能会导致使用错误的隐式规则。选择可能取决于隐式规则搜索的顺序。使用静态模式规则，则没有不确定性：每个规则都精确地应用于指定的目标。
 
 ## 4.13 双冒号规则
+双冒号规则是在目标名称后使用 `::` 编写的显式规则。当同一目标出现在多个规则中时，它们的处理方式与普通规则不同。带有双冒号的模式规则具有完全不同的含义（请参阅 [
+10.5.5 Match-Anything Pattern Rules](https://www.gnu.org/software/make/manual/html_node/Match_002dAnything-Rules.html)）。
+
+当一个目标出现在多个规则中时，所有规则都必须是相同的类型：全普通或全双冒号。**如果它们是双冒号，则每个目标都独立于其他目标。如果目标早于该规则的任何先决条件，则执行每个双冒号规则的配方**。如果该规则没有先决条件，则始终执行其配方（即使目标已经存在）。这可能导致不执行任何、任何或所有双冒号规则。
+
+**具有相同目标的双冒号规则实际上是完全独立的。每个双冒号规则都是单独处理的**，就像处理具有不同目标的规则一样。
+
+目标的双冒号规则按照它们在生成文件中的显示顺序执行。然而，**双冒号规则真正有意义的情况是那些执行配方的顺序无关紧要的情况**。
+
+双冒号规则有些晦涩难懂，而且通常不太有用；它们提供了一种机制，用于更新目标的方法因导致更新的先决条件文件而异，这种情况很少见。
+
+每个双冒号规则都应该指定一个配方；如果没有，则在应用时将使用隐式规则。请参阅 [10 Using Implicit Rules](https://www.gnu.org/software/make/manual/html_node/Implicit-Rules.html)。
 
 ## 4.14 自动生成先决条件
+
+在程序的 makefile 中，需要编写的许多规则通常只表示某个对象文件依赖于某个头文件。例如，如果 main.c 通过 `#include` 使用 defs.h ，那么您将编写：
+
+```makefile
+main.o: defs.h
+```
+
+你需要这个规则，让 *make* 知道无论何时 defs.h 发生变化，它都必须重新制作 main.o 。您可以看到，对于一个大型程序，您必须在 makefile 中编写数十个这样的规则。而且，每次添加或删除 `#include` 时，都必须非常小心地更新 makefile。
+
+为了避免这种麻烦，大多数现代C编译器都可以通过查看源文件中的 `#include` 行来为您编写这些规则。通常，这是通过编译器的 `-M` 选项完成的。例如，命令：
+
+```makefile
+cc -M main.c
+```
+
+生成输出：
+
+```makefile
+main.o : main.c defs.h
+```
+
+因此，您不再需要自己编写所有这些规则。编译器会帮你做的。
+
+请注意，这样的规则构成了在 makefile 中提及 main.o，因此通过隐式规则搜索，它永远不能被视为中间文件。这意味着 make 在使用该文件后永远不会删除该文件；请参阅 [10.4 Chains of Implicit Rules](https://www.gnu.org/software/make/manual/html_node/Chained-Rules.html)。
+
+对于旧的 make 程序，传统做法是通过 `make-depend` 等命令使用此编译器功能根据需要生成先决条件。该命令将创建一个包含所有自动生成的先决条件的文件 *depend*，然后 makefile 可以使用 `include` 来读取它们（请参见 [3.3 Including Other Makefiles](https://www.gnu.org/software/make/manual/html_node/Include.html)）。
+
+在GNU make中，重新制作(译者注，原文为remake，翻译成重新执行可能会更恰当？) makefile 的功能使这种做法过时了——你永远不需要明确地告诉 make 重新制作先决条件，因为它总是重新制作任何过期的 makefile。请参见如 [3.5 How Makefiles Are Remade](https://www.gnu.org/software/make/manual/html_node/Remaking-Makefiles.html)。
+
+**我们建议自动生成先决条件的做法是，每个源文件对应一个 _makefile_**。对于每个源文件 name.c，都有一个 makefile name.d，其中列出了目标文件 name.o 所依赖的文件。这样，只需要重新扫描已更改的源文件即可生成新的先决条件。
+
+以下是从名为 name.c 的C源文件生成名为 name.d b的先决条件文件（即makefile）的模式规则：
+
+```makefile
+%.d: %.c
+    @set -e; rm -f $@; \
+     $(CC) -M $(CPPFLAGS) $< > $@.$$$$; \
+     sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' <$@.$$$$ > $@; \
+     rm -f $@.$$$$
+```
+
+有关定义模式规则的信息，请参见 [10.5 Defining and Redefining Pattern Rules](https://www.gnu.org/software/make/manual/html_node/Pattern-Rules.html)。如果 `$(CC)` 命令（或任何其他命令）失败（以非零状态退出），shell的 `-e` 标志将使其立即退出。
+
+对于 GNU C 编译器，您可能希望使用 `-MM` 标志而不是 `-M` 。这省略了系统头文件的先决条件。有关详细信息，请参阅使用 GNU CC 中的 [3.13 Options Controlling the Preprocessor](https://gcc.gnu.org/onlinedocs/gcc/Preprocessor-Options.html#Preprocessor-Options)。
+
+`sed` 命令的目的是翻译（例如）：
+
+```makefile
+main.o : main.c defs.h
+```
+
+into
+
+```makefile
+main.o main.d : main.c defs.h
+```
+
+这使得每个 “.d” 文件都依赖于相应的“.o”文件所依赖的所有源文件和头文件。然后 make 会知道，每当任何源文件或头文件发生更改时，它都必须重新生成(regenerate)先决条件。
+
+一旦定义了重新制作 ".d" 文件的规则，就可以使用 `include` 指令来读取所有文件。请参阅 [3.3 Including Other Makefiles](https://www.gnu.org/software/make/manual/html_node/Include.html)）。例如
+
+```makefile
+sources = foo.c bar.c
+
+include $(sources:.c=.d)
+```
+（此示例使用替换变量引用将源文件 “foo.c bar.c” 的列表转换为先决条件生成文件 “foo.d bar.d” 的列表。有关替换引用的完整信息，请参阅 [6.3.1 Substitution References](https://www.gnu.org/software/make/manual/html_node/Substitution-Refs.html)。）由于 “.d” 文件与其他文件一样都是 makefile ，make 将根据需要重新制作它们，而无需您做进一步的工作。请参见 [3.5 How Makefiles Are Remade](https://www.gnu.org/software/make/manual/html_node/Remaking-Makefiles.html)。
+
+请注意，“.d” 文件包含目标定义；您应该确保将 `include` 指令放在 makefile 中的第一个默认目标之后，或者冒着让随机对象文件成为默认目标的风险。请参见 [2.3 How make Processes a Makefile](https://www.gnu.org/software/make/manual/html_node/How-Make-Works.html)。
 
 # 5 Writing Recipes in Rules
 
@@ -690,9 +871,6 @@ export variable …
 ``` Makefile
 target: ;
 ```
-
-
-
 
 # 6 How to Use Variables
 
@@ -989,7 +1167,7 @@ ifndef variable-name
 *endif*
 
 条件指令行的开头允许并忽略额外的空格，但不允许使用制表符。如果该行以制表符开头，它将被视为规则指令(recipe for a rule)的一部分。
-*make* 会在读取 Makefile 文件时评估条件语句，而自动变量是在 *reipce* 被执行后才被定义，所以==条件语句中不允许使用自动变量==
+*make* 会在读取 Makefile 文件时评估条件语句，而自动变量是在 *reipce* 被执行后才被定义，所以条件语句中不允许使用自动变量
 # 8 Functions for Transforming Text
 
 函数的目的是在makefile中进行文本处理，以计算要操作的文件或要在 recipes 中使用的命令。
@@ -1253,17 +1431,17 @@ pattern rule 的 prerequisite 中的'*%*'代表与 target 中的'*%*'匹配的�
 lib: foo.o bar.o lose.o win.o
         ar r lib $?
 ```
-- **$^**
+- `$^`
 	所有先决条件的名称，它们之间有空格。
 	对于作为存档成员的先决条件，只使用命名成员（见 [11 Using make to Update Archive Files](https://www.gnu.org/software/make/manual/make.html#Archives)）。无论每个文件作为先决条件列出多少次，一个目标在它所依赖的每个文件上只有一个先决条件。因此，如果您多次列出目标的先决条件，`$^`的值只包含名称的一个副本。此列表不包含任何仅顺序的先决条件；对于这些，请参阅下面的`$|`变量。
-- **$+**
+- `$+`
 	这就像`$^`, 但是列出多次的先决条件会按照它们在makefile中列出的顺序重复。这主要用于链接命令，在这些命令中以特定顺序重复库文件名是有意义的。
-- **$|**
+- `$|`
 	所有仅顺序的先决条件的名称，它们之间带有空格。
-- **$\***
+- `$*`
 	隐式规则匹配的词干（请参阅 [10.5.4 How Patterns Match](https://www.gnu.org/software/make/manual/make.html#Pattern-Match)）。
 	在显式规则中，没有词干；因此不能以这种方式确定`$*`。相反，如果目标名称以可识别的后缀结尾（参见 [10.7 Old-Fashioned Suffix Rules](https://www.gnu.org/software/make/manual/make.html#Suffix-Rules)), 则 `$*` 被设置为目标名称减去后缀。例如，如果目标名称是“foo. c”，则将`$*`设置为“foo”，因为“.c”是后缀。GNU make做这个奇怪的事情只是为了与make的其他实现兼容。
-	==除了在隐式规则或静态模式规则中，您通常应该避免使用`$*`。==
+	除了在隐式规则或静态模式规则中，您通常应该避免使用`$*`。
 	如果显式规则中的目标名称不以可识别的后缀结尾, `$*` 则设置为该规则的空字符串。
 
 在上面列出的变量中，四个具有单个文件名的值，三个具有文件名列表的值。这七个变量的变体仅获取文件的目录名或目录中的文件名。变体变量的名称分别由附加“D”或“F”组成。函数dir和notdir可用于获得类似的效果（参见 [8.3 Functions for File Names](https://www.gnu.org/software/make/manual/make.html#File-Name-Functions)）。但是请注意，“D”变体都省略了总是出现在dir函数输出中的尾随斜杠。
