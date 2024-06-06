@@ -856,15 +856,169 @@ include $(sources:.c=.d)
 请注意，“.d” 文件包含目标定义；您应该确保将 `include` 指令放在 makefile 中的第一个默认目标之后，或者冒着让随机对象文件成为默认目标的风险。请参见 [2.3 How make Processes a Makefile](https://www.gnu.org/software/make/manual/html_node/How-Make-Works.html)。
 
 # 5 Writing Recipes in Rules
+规则的配方由一个或多个shell命令行组成，这些命令行将按照出现的顺序一次执行一个。通常，执行这些命令的结果是使规则的目标成为最新的。
+
+用户使用许多不同的shell程序，但除非 makefile 另有规定，否则 makefile 中的配方始终由 /bin/sh 执行。请参阅 [5.3 Recipe Execution](https://www.gnu.org/software/make/manual/html_node/Execution.html)。
+
+## 5.1 配方的语法
+Makefile有一个不同寻常的特性，即在一个文件中实际上有两种不同的语法。makefile 中大部分内容使用 make 语法（请参阅 [3 Writing Makefiles](https://www.gnu.org/software/make/manual/html_node/Makefiles.html)）。然而，配方是由 shell 解释的，因此它们是使用 shell 语法编写的。make 程序并不试图理解 shell 语法：在将配方交给 shell 之前，它只对配方的内容执行很少的特定翻译。
+
+配方中的每一行都必须以一个制表符（或 `.RECIPEPREFIX` 变量值中的第一个字符；请参阅 [6.14 Other Special Variables](https://www.gnu.org/software/make/manual/html_node/Special-Variables.html)）开头，但第一个配方行可以用分号连接到目标-先决条件行。makefile 中以 tab 开头并出现在“规则上下文”中的任何一行（即，在一个规则启动之后，直到另一个规则或变量定义）都将被视为该规则的配方的一部分。在配方行中可能会出现空行和仅注释行，它们被忽略。
+
+这些规则的一些后果包括：
+
+- 以制表符开头的空行不是空白的：这是一个空配方（请参阅 [5.9 Using Empty Recipes](https://www.gnu.org/software/make/manual/make.html#Empty-Recipes)）。
+- **配方中的注释不是注释；它将按原样传递给 shell**。shell 是否将其视为注释取决于您的 shell。
+- “规则上下文”中(即以制表符作为行上第一个字符)的变量定义，将被视为配方的一部分，而不是 make 变量定义，并传递给 shell。
+- “规则上下文”中(即以制表符作为行上第一个字符)的条件表达式（ifdef、ifeq等，请参阅 [7.2 Syntax of Conditionals](https://www.gnu.org/software/make/manual/make.html#Conditional-Syntax)）将被视为配方的一部分，并传递给 shell。
+- [5.1.1 拆分配方行](https://www.gnu.org/software/make/manual/make.html#Splitting-Recipe-Lines)
+- [5.1.2 在配方中使用变量](https://www.gnu.org/software/make/manual/make.html#Variables-in-Recipes)
+
+### 5.1.1 拆分配方行
+*make* 解释配方的为数不多的方法之一是检查换行符前的反斜杠。与正常的 *makefile* 语法一样，通过在每个换行符之前放置一个反斜杠，可以将 makefile 中的单个逻辑配方行拆分为多个物理行。像这样的一系列行被视为单个配方行，将调用shell的一个实例来运行它。
+
+但是，与 *makefile* 中其他地方的处理方式不同（请参见 [3.1.1 Splitting Long Lines](https://www.gnu.org/software/make/manual/make.html#Splitting-Lines)），“反斜杠/换行符对”不会从配方中删除。反斜杠和换行符都会被保留并传递给 shell。如何解释反斜杠/换行符取决于您的shell。如果反斜杠/换行后下一行的第一个字符是配方前缀字符（默认情况下为制表符；请参阅 [6.14 Other Special Variables](https://www.gnu.org/software/make/manual/make.html#Special-Variables)），则会删除该字符（并且仅删除该字符）。配方中从不添加空白。
+
+例如，此 *makefile* 中目标 “all” 的配方：
+
+```makefile
+all :
+    @echo no\
+space
+    @echo no\
+    space
+    @echo one \
+    space
+    @echo one\
+     space
+```
+
+由四个独立的shell命令组成，其中输出为：
+
+```
+nospace
+nospace
+one space
+one space
+```
+
+作为一个更复杂的例子，这个 makefile：
+
+```makefile
+all : ; @echo 'hello \
+        world' ; echo "hello \
+    world"
+```
+
+将使用以下命令调用一个shell：
+
+``` shell
+echo 'hello \
+world' ; echo "hello \
+    world"
+```
+
+根据 shell 引用规则，它将产生以下输出：
+
+``` shell
+hello \
+world
+hello     world
+```
+
+请注意，反斜杠/换行符对是如何在用双引号（" "）引起来的字符串内删除的，而不是从用单引号（' '）引出来的字符串中删除的。这是默认 shell（/bin/sh）处理“反斜杠/换行符对”的方式。如果在 makefile 中指定了不同的 shell，则可能会对它们进行不同的处理。
+
+有时，您希望在单引号内拆分一条长行，但不希望反斜杠/换行符出现在引用的内容中。当将脚本传递给 Perl 等语言时，通常会出现这种情况，脚本中多余的反斜杠可能会改变其含义，甚至是语法错误。一种简单的处理方法是将带引号的字符串，甚至整个命令放入 make 变量中，然后在配方中使用该变量。在这种情况下，将使用 makefile 的换行规则，并删除反斜杠/换行符。如果我们使用此方法重写上面的示例：
+
+```makefile
+HELLO = 'hello \
+world'
+
+all : ; @echo $(HELLO)
+```
+我们将得到这样的输出：
+```shell
+hello world
+```
+
+如果您愿意，您也可以使用特定于目标的变量（请参阅 [6.11 Target-specific Variable Values](https://www.gnu.org/software/make/manual/make.html#Target_002dspecific)）来获得变量和使用它的配方之间更紧密的对应关系。
+
+### 5.1.2 在配方中使用变量
+*make* 处理配方的另一种方法是扩展其中的任何变量引用（请参阅 [6.1 Basics of Variable References](https://www.gnu.org/software/make/manual/make.html#Reference)）。这发生在 *make* 完成所有 makefile 的读取并且目标被确定为过期之后；因此，不被重建的目标的配方永远不会扩展。
+
+配方中的变量和函数引用与 makefile 中其他地方的引用具有相同的语法和语义。他们也有相同的转义规则：如果你想在配方中出现一个美元符号，你必须将其加倍（"$$"）。对于像默认 shell 这样使用美元符号引入变量的shell，重要的是要记住要引用的变量是make变量（使用一个美元符号）还是shell变量（使用两个美元符号）。例如
+
+```makefile
+LIST = one two three
+all:
+        for i in $(LIST); do \
+            echo $$i; \
+        done
+```
+
+导致以下命令被传递到 shell：
+```shell
+for i in one two three; do \
+    echo $i; \
+done
+```
+
+其产生预期结果：
+```
+one
+two
+three
+```
+
+## 5.2 配方中的回送显示(echo)
+通常情况下，在执行配方之前，*make* 会打印配方的每一行。我们称之为回送显示(echoing)，因为它给人的感觉是你自己在打字。
+
+**当一行以“@”开头时，该行的回显将被抑制**。在将该行传递给 shell 之前，将丢弃“@”。通常，您会将其用于唯一效果是打印某些内容的命令，例如用于指示 makefile 进度的echo命令：
+
+```makefile
+@echo About to make distribution files
+```
+
+当 *make* 被赋予 `-n` 或 `--just-print` 标志时，它只会回显大多数配方，而不会执行它们。请参阅 [9.8 Summary of Options](https://www.gnu.org/software/make/manual/make.html#Options-Summary)。在这种情况下，甚至会打印以“@”开头的配方行。这个标志有助于找出哪些配方是必要的，而不需要 *make* 实际操作。
+
+要制作的 `-s` 或 `--silent` 标志可以阻值所有的回显，就好像所有的配方都以 `@` 开头一样。在 makefile 中为特殊目标 “.SILENT” 设置的不带先决条件的规则具有相同的效果。（请参阅 [4.9 Special Built-in Target Names](https://www.gnu.org/software/make/manual/make.html#Special-Targets)）
+
+## 5.3 配方的执行
+
+### 5.3.1 使用一个 shell
+
+### 5.3.2 选择 shell
+
+## 5.4 并行执行
+
+### 5.4.1 禁用并行执行
+
+### 5.4.2 并行执行期间的输出
+
+### 5.4.3 并行执行期间的输入
+
+## 5.5 配方中的错误
+
+## 5.6 中断或终止make
+
+## 5.7 make的递归使用
+
+### 5.7.1 变量`MAKE`的工作原理
 
 ### 5.7.2 与 Sub-make 互相传递变量
 
 如果要将特定变量导出到 sub-make，请使用`export`指令，如下所示：
-```
+```makefile
 export variable …
 ```
 
-## 5.9 空 Recipes
+### 5.7.3 将选项传达给Sub-make
+
+### 5.7.4 "--print directory"选项
+
+## 5.8 定义罐头配方
+
+## 5.9 使用空配方
 
 给出一个只包含空格的 recipe 即可（在10.1里说的是要写一个分号）。例如：
 
