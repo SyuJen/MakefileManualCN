@@ -871,8 +871,6 @@ Makefile有一个不同寻常的特性，即在一个文件中实际上有两种
 - **配方中的注释不是注释；它将按原样传递给 shell**。shell 是否将其视为注释取决于您的 shell。
 - “规则上下文”中(即以制表符作为行上第一个字符)的变量定义，将被视为配方的一部分，而不是 make 变量定义，并传递给 shell。
 - “规则上下文”中(即以制表符作为行上第一个字符)的条件表达式（ifdef、ifeq等，请参阅 [7.2 Syntax of Conditionals](https://www.gnu.org/software/make/manual/make.html#Conditional-Syntax)）将被视为配方的一部分，并传递给 shell。
-- [5.1.1 拆分配方行](https://www.gnu.org/software/make/manual/make.html#Splitting-Recipe-Lines)
-- [5.1.2 在配方中使用变量](https://www.gnu.org/software/make/manual/make.html#Variables-in-Recipes)
 
 ### 5.1.1 拆分配方行
 *make* 解释配方的为数不多的方法之一是检查换行符前的反斜杠。与正常的 *makefile* 语法一样，通过在每个换行符之前放置一个反斜杠，可以将 makefile 中的单个逻辑配方行拆分为多个物理行。像这样的一系列行被视为单个配方行，将调用shell的一个实例来运行它。
@@ -984,12 +982,115 @@ three
 要制作的 `-s` 或 `--silent` 标志可以阻值所有的回显，就好像所有的配方都以 `@` 开头一样。在 makefile 中为特殊目标 “.SILENT” 设置的不带先决条件的规则具有相同的效果。（请参阅 [4.9 Special Built-in Target Names](https://www.gnu.org/software/make/manual/make.html#Special-Targets)）
 
 ## 5.3 配方的执行
+当需要执行配方来更新目标时，它们是通过为配方的每一行调用一个新的 子shell(sub-shelll) 来执行的，除非特殊目标 `.ONESHELL` 生效（请参阅 [5.3.1 Using One Shell](https://www.gnu.org/software/make/manual/html_node/One-Shell.html)）（在实践中，make可能会采取不影响结果的快捷方式。）
+
+请注意：这意味着设置 shell 变量和调用 shell 命令（如cd）（为每个进程设置本地上下文）不会影响配方中的后续行（官方脚注：在MS-DOS上，当前工作目录的值是全局的，因此更改它将影响这些系统上的后续配方行。）。如果您想使用 cd 来影响下一个语句，请将两个语句放在一个配方行中。那么 make 将调用一个 shell 来运行整行，shell 将按顺序执行语句。例如：
+
+```makefile
+foo : bar/lose
+    cd $(<D) && gobble $(<F) > ../$@
+```
+
+在这里，我们使用 shell 与运算符`&&`，这样，如果 cd 命令失败，脚本将失败，而不会尝试在错误的目录中调用命令 gobble ，如果调用了可能会导致问题（在示例情况下，它肯定会导致../foo被截断）。
 
 ### 5.3.1 使用一个 shell
+有时，您更希望将配方中的所有行都传递给单个调用的 shell。通常在两种情况下是有用的：首先，它可以通过避免额外的进程来提高由许多命令行组成的配方的 makefile 的性能。其次，您可能希望在您的配方命令中包含换行符（例如，您使用的解释器与SHELL完全不同）。如果特殊目标 `.ONESHELL` 出现在makefile中的任何位置，则每个目标的所有配方行都将提供给单个调用的 shell。配方行之间的换行符将被保留。例如
+
+```makefile
+.ONESHELL:
+foo : bar/lose
+    cd $(<D)
+    gobble $(<F) > ../$@
+```
+
+现在将按预期工作，即使命令位于不同的配方行上。
+
+如果提供了 `.ONESHELL`，则只会检查配方的第一行中的特殊前缀字符（“`@`”、“`-`”和“`+`”）。调用 shell 时，后续行将包括配方行中的特殊字符。如果你想让你的配方以特殊字符其中一个开头，你需要安排它们不能作为第一行的第一个字符，也许可以添加注释或类似的内容。例如，这将是 Perl 中的语法错误，因为第一个“`@`”是通过make删除的：
+
+```makefile
+.ONESHELL:
+SHELL = /usr/bin/perl
+.SHELLFLAGS = -e
+show :
+    @f = qw(a b c);
+    print "@f\n";
+```
+
+然而，这两种替代方案中的任何一种都可以正常工作：
+
+```makefile
+.ONESHELL:
+SHELL = /usr/bin/perl
+.SHELLFLAGS = -e
+show :
+        # Make sure "@" is not the first character on the first line
+        @f = qw(a b c);
+        print "@f\n";
+```
+或
+```makefile
+.ONESHELL:
+SHELL = /usr/bin/perl
+.SHELLFLAGS = -e
+show :
+        my @f = qw(a b c);
+        print "@f\n";
+```
+
+作为一个特殊功能，如果 SHELL 被确定为 POSIX 风格的 SHELL，则在处理配方之前，“内部”配方行中的特殊前缀字符将被删除。此功能旨在允许现有makefile添加特殊目标 `.ONESHELL` 且无需大量修改的情况下仍然可以正常运行。由于 POSIX shell 脚本中一行开头的特殊前缀字符是不合法的，所以这并不是功能上的损失。例如，这可以按预期工作：
+```makefile
+.ONESHELL:
+foo : bar/lose
+    @cd $(@D)
+    @gobble $(@F) > ../$@
+```
+
+然而，即使有了这个特殊功能，带有 `.ONESHELL` 的 makefile 也会以明显的方式表现出不同的行为。例如，通常情况下，如果配方中的任何一行失败，就会导致规则失败，不再处理更多的配方行。在 `.ONESHELL` 下，*make* 不会注意到除配方最后一行以外的任何一个配方行的错误。您可以修改 `.SHELLFLAGS` 用来将 -e 选项添加到 shell，这将导致命令行中任何位置的任何故障都会导致 shell 失败，但这本身可能会导致您的配方表现不同。最终，你可能需要强化你的配方行，让它们与 `.ONESHELL` 一起工作。
 
 ### 5.3.2 选择 shell
+用作 shell 的程序取自变量 `SHELL`。如果在 makefile 中未设置此变量，则使用程序 /bin/sh 作为 shell。传递给 shell 的参数取自变量 `.SHELLFLAGS`。`.SHELLFLAGS` 的默认值在正常情况下为 `-c`，在POSIX兼容模式下为 `-ec`。
+
+与大多数变量不同，变量 `SHELL` 绝不从环境中设置。这是因为环境变量 `SHELL` 用于指定您个人选择的交互式 shell 程序。个人选择会影响 makefile 的功能将是非常糟糕的。请参见 [6.10 Variables from the Environment](https://www.gnu.org/software/make/manual/html_node/Environment.html)。
+
+此外，当您在 makefile 中确实设置了 `SHELL` 时，该值不会从环境中导出到 *make* 调用的配方行。相反只会导出从用户环境（如果有的话）继承的值。您可以通过显式导出 `SHELL`（请参阅 [
+5.7.2 Communicating Variables to a Sub-make](https://www.gnu.org/software/make/manual/html_node/Variables_002fRecursion.html)）来覆盖此行为，强制它在环境中传递到配方行。
+
+(
+译者注，因为我在翻译这段的时候被绕晕了，就添加一点儿我自己的理解：
+- 首先 *shell* 有很多种，比如 /bin/sh 或 /bin/bash 还有 csh tcsh ash 等等，总之就是很多，用户可能会根据习惯，将某种 shell 通过环境变量的方式选择为默认，在 终端terminal 中执行脚本语言的是通过环境变量设置的 shell。
+- 当在 终端terminal 中输入 "`make`" 会执行某个 *makefile* 中的内容，根据 [5.3 Recipe Execution](https://www.gnu.org/software/make/manual/html_node/Execution.html)中提到的，执行配方时，会将配方中的内容传给一个新的shell
+- *makefile* 想达到的一种效果是，不依赖于在其控制范围之外设置的环境变量，因为这会导致不同的用户从同一个 makefile 中获得不同的结果，这在 [6.10 Variables from the Environment](https://www.gnu.org/software/make/manual/html_node/Environment.html) 中有提到，所以它不管环境变量 `SHELL` 是如何使用的，而默认使用 /bin/sh 来执行配方。
+- 但是写 *makefile* 的配方时，此 makefile 的作者不一定用的是 sh 风格的编程语言，即 /bin/sh 不一定能执行它，那么就需要用别的 shell，一般会在 makefile 里写一个变量 `SHELL` 来指定，这样就在 makefile 的控制下了
+- 虽然两个 `SHELL` 名称一样，但 makefile 中的 `SHELL` 并不会受到环境变量 `SHELL`的影响。
+)
+
+但是，在 MS-DOS 和 MS-Windows 上，使用环境中 `SHELL` 的值，因为在这些系统上，大多数用户不会设置此变量，因此它很可能是专门设置为由 *make* 使用的。在 MS-DOS 上，如果 `SHELL` 的设置不适合 *make*，可以将变量 `MAKESHELL` 设置为 `make `应该使用的 shell；如果设置，它将用作shell，而不是 `SHELL` 的值。
+
+**在DOS和Windows中选择外壳**
+暂略
 
 ## 5.4 并行执行
+GNU *make* 知道如何同时执行多个配方。通常，*make* 一次只执行一个配方，等待它完成后再执行下一个。然而，“`-j`”或“`--jobs`”选项告诉 *make* 同时执行许多配方。您可以从 *makefile* 中禁止某些或所有目标的并行性（请参阅 [5.4.1 Disabling Parallel Execution](https://www.gnu.org/software/make/manual/html_node/Parallel-Disable.html)）。
+
+在 MS-DOS 上，“`-j`”选项无效，因为该系统不支持多处理。
+
+如果“`-j`”选项后面跟着一个整数，这是同时执行的配方数；这被称为作业槽(job slots)的数量。如果“`-j`”选项后面没有类似整数的内容，则作业槽的数量没有限制。作业槽的默认数量是一个，这意味着串行执行（一次执行一件事）。
+
+处理递归 *make* 调用会引发并行执行的问题。有关此方面的详细信息，请参见 [5.7.3 Communicating Options to a Sub-make](https://www.gnu.org/software/make/manual/html_node/Options_002fRecursion.html)。
+
+如果某个配方失败（被信号终止或以非零状态退出），并且该配方的错误未被忽略（请参阅 [5.5 Errors in Recipes](https://www.gnu.org/software/make/manual/html_node/Errors.html)），则用于重制相同目标的剩余配方行将不会运行。如果配方失败，并且没有给出“`-k`”或“`--keep-going`”选项（请参阅 [9.8 Summary of Options](https://www.gnu.org/software/make/manual/html_node/Options-Summary.html)），则中止执行。如果 *make* 由于任何原因（包括信号）终止，但子进程正在运行，*make* 将等待它们完成，然后才真正退出。
+
+当系统负载较重时，您可能希望运行的作业比负载较轻时更少。您可以使用“`-l`”选项告诉make根据平均负载限制同时运行的作业数。“`-l`”或“`--max load`”选项后面跟一个浮点数。例如：
+
+```makefile
+-l 2.5
+```
+
+如果平均负载高于2.5，则不会让make启动多个作业。不带后置数字的 “`-l`” 选项将删除负载限制（如果之前使用了“`-l`”选项）。
+
+更准确地说，当make启动一个作业，并且它已经有至少一个作业在运行时，它会检查当前的平均负载；如果它不低于“`-l`”给定的限制，则进行等待，直到平均负载低于该限制，或者直到所有其他作业完成。
+
+默认情况下，没有负载限制。
 
 ### 5.4.1 禁用并行执行
 
@@ -1002,15 +1103,114 @@ three
 ## 5.6 中断或终止make
 
 ## 5.7 make的递归使用
+递归使用 *make* 意味着在 makefile 中使用 `make` 作为命令。当组成更大系统的各个子系统需要分离的 *makefile* 时，此技术非常有用。例如，假设您有一个子目录 *subdir*，它有自己的 *makefile*，并且您希望包含目录的 *makefile* 在该子目录上运行 *make*。你可以这样写：
+
+``` makefile
+subsystem:
+    cd subdir && $(MAKE)
+```
+
+或者等效地这样写
+
+``` makefile
+subsystem:
+    $(MAKE) -C subdir
+```
+
+只需复制此示例，就可以编写递归 *make* 命令，但关于它们的工作方式和原因，以及 *sub-make* 与 顶层make 的关系，还有很多事情需要了解。您可能还发现将调用递归make命令的目标声明为 `.PHONY` 也很有用（有关何时有用的更多讨论，请参阅 [4.6 Phony Targets](https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html)）。
+
+为了方便起见，当GNU make启动时（在它处理了所有 `-c` 选项之后），它将变量 `CURDIR` 设置为当前工作目录的路径名。之后`make`再也不会触及此值：特别注意，如果您包含其他目录中的文件，则 `CURDIR` 的值不会更改。该值的优先级与在 *makefile* 中设置该值时的优先级相同（默认情况下，环境变量 `CURDIR` 不会覆盖该值）。请注意，设置此变量对 *make* 的操作没有影响（例如，它不会导致 *make* 更改其工作目录）。
 
 ### 5.7.1 变量`MAKE`的工作原理
+递归 *make* 命令应始终使用变量 `MAKE`，而不是显式命令`make`，如下所示：
 
-### 5.7.2 与 Sub-make 互相传递变量
+```makefile
+subsystem:
+    cd subdir && $(MAKE)
+```
+
+此变量的值是用于调用 *make* 的文件名。如果此文件名为 `/bin/make` ，则执行的配方为 `cd subdir&&/bin/make`。如果使用特殊版本的 *make* 来运行 顶层makefile，那么递归调用将使用相同的特殊版本来执行。
+
+作为一项特殊功能，在规则的配方中使用变量 `MAKE` 会更改`-t`（`--touch`）、`-n`（`--just-print`）或`-q`（`-question`）选项的效果。使用 `MAKE` 变量的效果与在配方行开头使用 `+` 字符的效果相同。请参见 [9.3 Instead of Executing Recipes](https://www.gnu.org/software/make/manual/html_node/Instead-of-Execution.html)。只有当 `MAKE` 变量直接出现在配方中时，才会启用此特殊功能：如果通过扩展另一个变量引用 `MAKE` 变量，则此功能不适用。在后一种情况下，您必须使用 `+` 标记才能获得这些特殊效果。
+
+请考虑上面示例中的命令“`make-t`”。（“`-t`”选项在不实际运行任何配方的情况下将目标标记为最新；请参阅 [9.3 Instead of Executing Recipes](https://www.gnu.org/software/make/manual/html_node/Instead-of-Execution.html)。）根据“`-t`”的常见定义，示例中的“`make -t`”命令将创建一个名为 *subsystem* 的文件，而不执行其他操作。你真正想让它做的是运行 `cd subdir && make -t`；但这需要执行配方，“`-t`”表示不执行配方。
+
+这个特殊功能使它可以随心所欲：每当规则的配方行包含变量 `MAKE` 时，标志“`-t`”、“`-n`”和“`-q`”都不适用于该行。包含 `MAKE` 的配方行正常执行，尽管存在导致大多数配方不运行的标志。通常的 `MAKEFLAGS` 机制将标志传递给 *sub-make*（请参阅 [5.7.3 Communicating Options to a Sub-make](https://www.gnu.org/software/make/manual/html_node/Options_002fRecursion.html)），因此您新建文件（译者注，原文中是 touch files， 但联想了一下 linux 中 `touch` 命令是用来新建也给文件的）或打印配方的请求会传播到子系统。
+
+### 5.7.2 向 Sub-make 传递变量
+
+顶层make 的变量值可以用显式请求通过环境传递给 sub-make。这些变量在 sub-make 中定义为默认值，但它们不会覆盖 sub-make 使用的 makefile 中定义的变量，除非使用 “`-e`” 开关（请参见 [9.8 Summary of Options](https://www.gnu.org/software/make/manual/html_node/Options-Summary.html)）。
+
+要向下传递或导出变量，*make* 将变量及其值添加到运行配方每一行的环境中。相应地，sub-make 使用环境来初始化其变量值表。请参见 [6.10 Variables from the Environment](https://www.gnu.org/software/make/manual/html_node/Environment.html)。
+
+除非通过明确的请求，否则仅当变量最初在环境中定义，或者在命令行上设置并且其名称仅由字母、数字和下划线组成时，才使导出成为变量。
+
+*make* 变量 `SHELL` 的值不会被导出。相反，调用环境中的 `SHELL` 变量的值会传递给 sub-make。您可以使用 `export` 指令强制 *make* 为 `SHELL` 导出其值，如下所述。请参见 [5.3.2 Choosing the Shell](https://www.gnu.org/software/make/manual/html_node/Choosing-the-Shell.html)。
+
+特殊变量 `MAKEFLAGS` 始终被导出（除非您取消导出它）。将 `MAKEFILES` 设置为任意值即可导出它。
+
+*make* 通过将命令行上定义的变量值放入 `MAKEFLAGS` 变量中，自动向下传递这些值。请参见 [5.7.3 Communicating Options to a Sub-make](https://www.gnu.org/software/make/manual/html_node/Options_002fRecursion.html)。
+
+如果变量是由 *make* 默认创建的，则通常不会向下传递（请参阅 [10.3 Variables Used by Implicit Rules](https://www.gnu.org/software/make/manual/html_node/Implicit-Variables.html)）。sub-make将自己定义这些。
 
 如果要将特定变量导出到 sub-make，请使用`export`指令，如下所示：
+
 ```makefile
 export variable …
 ```
+
+如果要阻止变量导出，请使用 `unport` 指令，如下所示：
+
+```makefile
+unexport variable …
+```
+
+在这两种形式中，要 `export` 和 `unexport` 的参数都是展开的，要展开为变量名（列表）的变量或函数也可以要导出(或不导出)。
+
+为了方便起见，您可以定义一个变量并同时导出它，方法是：
+
+```makefile
+export variable = value
+```
+
+具有与以下相同的结果：
+
+```makefile
+variable = value
+export variable
+```
+
+```makefile
+export variable := value
+
+# equivalent to
+
+variable := value
+export variable
+```
+
+```makefile
+export variable += value
+# equivalent to
+variable += value
+export variable
+```
+请参阅 [6.6 Appending More Text to Variables](https://www.gnu.org/software/make/manual/html_node/Appending.html)
+
+您可能会注意到，`export` 和 `unexport` 指令在 *make* 中的工作方式与它们在 *shell sh* 中的工作方式相同。
+
+如果希望默认情况下导出所有变量，则可以单独使用导出：
+
+```sh
+export
+```
+
+这告诉 *make* 应该导出 `export` 和 `unexport` 指令中未明确提及的变量。`unexport` 指令中给定的任何变量仍然不会导出。
+
+导出指令本身引发的行为是旧版本 GNU *make* 中的默认行为。如果您的 makefile 依赖于此行为，并且希望与旧版本的 make 兼容，则可以添加特殊目标 `.EXPORT_ALL_VARIABLES` 到 makefile，而不是使用 `export` 指令。这将被旧的 *make* 忽略，而`export` 指令将导致语法错误。
+
+
+(部分内容尚未翻译)
 
 ### 5.7.3 将选项传达给Sub-make
 
@@ -1219,7 +1419,16 @@ override undefine CFLAGS
 ```
 
 ## 6.10 来自环境的变量
-略
+*make* 中的变量可以来自运行 *make* 的环境。*make* 启动时看到的每个环境变量都会转换为具有相同名称和值的 *make* 变量。但是，*makefile* 中的显式赋值或使用命令参数会覆盖环境。（如果指定了 “`-e`” 标志，则环境中的值将覆盖 *makefile* 中的分配。请参阅 [9.8 Summary of Options](https://www.gnu.org/software/make/manual/html_node/Options-Summary.html)。但实际中不建议这样做。）
+
+因此，通过在环境中设置变量 `CFLAGS` ，可以使大多数 *makefile* 中的所有C编译使用您喜欢的编译器开关。这对于具有标准或传统含义的变量是安全的，因为您知道没有 *makefile* 会将它们用于其他事情。（请注意，这并不完全可靠；一些 *makefile* 显式设置 `CFLAGS`，因此不受环境中的值的影响。）
+
+当 *make* 运行一个配方时，*makefile* 中定义的一些变量会被放入 *make* 调用的每个命令的环境中。默认情况下，只有来自 *make* 环境或在其命令行上设置的变量才会被放置到命令的环境中。您可以使用 `export` 指令来传递其他变量。有关完整的详细信息，请参阅 [5.7.2 Communicating Variables to a Sub-make](https://www.gnu.org/software/make/manual/html_node/Variables_002fRecursion.html)。
+
+**不建议使用环境中的其他变量**。*makefile* 的功能依赖于在其控制范围之外设置的环境变量是不明智的，因为这会导致不同的用户从同一个 *makefile* 中获得不同的结果。这违背了大多数 *makefile* 的全部目的。
+
+变量 `SHELL` 尤其可能出现这种问题，它通常存在于环境中，用于指定用户对交互式 *shell* 的选择。这种选择会影响 “*make*”，这是非常不可取的；因此，“*make*” 以一种特殊的方式处理 “`SHELL`” 环境变量；请参见 [5.3.2 Choosing the Shell ](https://www.gnu.org/software/make/manual/html_node/Choosing-the-Shell.html)。
+
 
 ## 6.11 特定于目标的变量值
 
