@@ -10,10 +10,46 @@ Free Documentation License''.
 
 创建一个名为 `makefile` 的文件，该文件描述程序中文件之间的关系，并提供更新每个文件的命令
 
-# 2 An Introduction to Makefiles
-## 2.1 What a Rule Looks like
+# 1 *make* 概述
 
-```make
+*make* 实用程序自动确定大型程序的哪些部分需要重新编译，并发出重新编译它们的命令。本手册描述了由 Richard Stallman 和 Roland McGrath 实现的 GNU *make*。自3.76版本以来的开发一直由 Paul D.Smith 负责。
+
+GNU *make*符合 IEEE 标准 1003.2-1992(POSIX.2)的第6.2节。
+
+我们的例子显示了 C 程序，因为它们是最常见的，但您可以将 *make* 与任何可以使用 shell 命令运行的编译器的编程语言一起使用。事实上，*make* 并不局限于程序。您可以使用它来描述其中某些文件必须在其他文件更改时自动从其他文件更新的一切任务。
+
+**准备和运行 *make***
+
+要准备使用 *make*，必须编写一个名为 *makefile* 的文件，该文件描述程序中文件之间的关系，并提供更新每个文件的命令。在程序中，通常从目标文件(object files)更新可执行文件(executable file)，而目标文件又是通过编译源文件生成的(source files)。
+
+一旦存在合适的makefile，每次更改一些源文件时，这个简单的shell命令：
+
+```sh
+make
+```
+
+足以执行所有必要的重新编译。*make* 程序使用 *makefile* 数据库和文件的上次修改时间来决定哪些文件需要更新。对于这些文件中的每一个，它都会发布数据库中记录的配方(recipe)。
+
+您可以提供命令行参数给 *make*，来控制应重新编译哪些文件或如何重新编译。请参阅 [9 How to Run make](https://www.gnu.org/software/make/manual/make.html#Running)。
+
+## 1.1 How to Read This Manual
+（暂略）
+
+## 1.2 Problems and Bugs
+（暂略）
+
+# 2 An Introduction to Makefiles
+你需要一个名为 *makefile* 的文件来告诉 *make* 该做什么。通常，*makefile* 会告诉 *make* 如何编译和链接程序。
+
+在本章中，我们将讨论一个简单的 *makefile*，该文件描述如何编译和链接由8个C源文件和3个头文件组成的文本编辑器。*makefile* 还可以告诉 *make* 如何在明确要求时运行其他命令（例如，作为清理操作删除某些文件）。要查看生成文件的更复杂示例，请参见 [Appendix C Complex Makefile Example](https://www.gnu.org/software/make/manual/make.html#Complex-Makefile)。
+
+当 *make* 重新编译编辑器时，必须重新编译每个更改过的C源文件。如果头文件发生了更改，则必须重新编译包含该头文件的每个C源文件，以确保安全。每次编译都会生成一个与源文件相对应目标文件。最后，如果重新编译了任何源文件，则所有对象文件，无论是新创建的还是从以前的编译中保存的，都必须链接在一起，以生成新的可执行编辑器（译者注，这里原文就是 new executable editor，虽然我感觉 editor 这个词怪怪的）。
+
+## 2.1 一条规则的样式
+
+一个简单的 *makefile* 由以下形状的“规则(rule)”组成：
+
+```makefile
 target ... : prerquisited ...
     recipe
     ...
@@ -1093,14 +1129,126 @@ GNU *make* 知道如何同时执行多个配方。通常，*make* 一次只执�
 默认情况下，没有负载限制。
 
 ### 5.4.1 禁用并行执行
+如果一个 *makefile* 完全准确地定义了其所有目标之间的依赖关系，那么无论是否启用并行执行，*make* 都将正确地构建目标。这是编写 *makefile* 的理想方式。
+
+然而，有时 *makefile* 中的部分或全部目标无法并行执行，并且添加所需的先决条件来通知 *make* 是不可行的。在这种情况下，*makefile* 可以使用各种方法来禁用并行执行。
+
+如果在任何位置指定了不带先决条件的特殊目标“`.NOTPARALLEL`”，那么无论并行设置如何，*make* 的整个实例都将串行运行。例如
+
+```makefile
+all: one two three
+one two three: ; @sleep 1; echo $@
+
+.NOTPARALLEL:
+```
+
+无论如何调用 *make*，目标 *one*、*two* 和 *three* 都将串行运行。
+
+如果特殊目标“`.NOTPARALLEL`”具有先决条件，那么这些先决条件中的每一个都将被视为目标，并且这些目标的所有先决条件都将串行运行。请注意，只有在构建此目标时，先决条件才会串行运行：如果其他目标列出了相同的先决条件，并且不在“`.NOTPARALLEL`”中，则这些先决条件可以并行运行。例如：
+
+```makefile
+all: base notparallel
+
+base: one two three
+notparallel: one two three
+
+one two three: ; @sleep 1; echo $@
+
+.NOTPARALLEL: notparallel
+```
+
+这里“`make -j base`”将并行运行目标 *one*、*two* 和 *three*，而“`make -j notparallel`”将串行运行它们。如果您运行“`make -j all`”，那么它们将并行运行，因为 *base* 将它们列为先决条件，并且没有序列化（serialized）。
+
+目标`.NOTPARALLEL`不应具有命令。
+
+最后，您可以使用特殊目标 `.WAIT`以细粒度的方式(in a fine-grained way)控制特定先决条件的序列化(serialization)。当此目标出现在先决条件列表中并且启用了并行执行时，*make* 将不会生成 `.WAIT` 右侧的任何先决条件，直到位于`.WAIT` 左侧的所有先决条件都已完成。例如：
+
+```makefile
+all: one two .WAIT three
+one two three: ; @sleep 1; echo $@
+```
+
+如果启用了并行执行，*make* 将尝试并行构建目标 *one*、*two*，但在两者都完成之前不会尝试构建目标 *three*。
+
+与提供给的“`.NOTPARALLEL`”目标一样，"`.WAIT`"仅在构建其先决条件列表中显示的目标时生效。如果其他目标中存在相同的先决条件，且不存在`.WAIT`，则它们可能仍然并行运行。也正因为如此，无论是`.NOTPARALLEL`还是`.WAIT`，在控制并行执行方面与定义先决条件关系一样可靠。然而，它们很容易使用，在不太复杂的情况下可能就足够了。
+
+`.WAIT`先决条件将不存在于规则的任何自动变量中。
+
+为了可移植性，您可以在您的 *makefile* 中创建一个 `.WAIT` 实际目标，但这不是使用此功能所必需的。如果`.WAIT`目标已创建，它不应具有先决条件或命令。
+
+`.WAIT`功能也在其他版本的 *make* 中实现，它在POSIX版本的 *make* 标准中指定。
 
 ### 5.4.2 并行执行期间的输出
+当并行运行多个配方时，每个配方的输出一生成就会出现，结果是来自不同配方的消息可能会穿插在一起，有时甚至会出现在同一行。这会使读取输出变得非常困难。
+
+要避免这种情况，可以使用“`--output-sync`”（“`-O`”）选项。此选项指示 *make* 保存其调用的命令的输出，并在命令完成后全部打印。此外，如果有多个递归 *make* 调用并行运行，它们将进行通信，以便一次只生成(generate)其中一个输出。
+
+如果启用了工作目录打印（请参阅 [5.7.4 The ‘--print-directory’ Option](https://www.gnu.org/software/make/manual/make.html#g_t_002dw-Option)），则会在每个输出分组周围打印输入/离开消息。如果不希望看到这些消息，请将“`--no-print-directory`”选项添加到 `MAKEFLAGS`。
+
+同步输出时有四个粒度(granularity)级别，通过为选项提供参数来指定（例如，“`-Oline`”或“`--output-sync=recurse`”）。
+
+- none<br>这是默认设置：所有输出在生成(generate)时直接发送，不执行同步。
+- line<br>配方中每一行的输出都会进行分组，并在该行完成后立即打印。如果一个配方由多行组成，它们可能会穿插其他配方中的行。
+- target<br>对每个目标的整个配方的输出进行分组，并在目标完成后打印。如果在没有参数的情况下提供`--output-sync`或`-O`选项，则这是默认值。
+- recurse<br>每次 *make* 递归调用的输出都会在递归调用完成后进行分组和打印。
+
+无论选择何种模式，总构建时间都是相同的。唯一的区别在于输出的显示方式。
+
+“`target`”和“`recurse`”模式都会收集目标的整个配方的输出，并在配方完成时不间断地显示。它们之间的区别在于如何处理包含 *make* 递归调用的配方（请参阅 [5.7 Recursive Use of make](https://www.gnu.org/software/make/manual/make.html#Recursion)）。对于所有没有递归行的配方，“`target`”和“`recurse`”模式的行为相同。
+
+如果选择了“`recurse`”模式，则处理包含递归 *make* 调用的配方的方式，将与处理其他目标的方式相同：配方的输出，包括递归 *make* 的输出，都被保存并将在整个配方完成后打印。这确保了由给定递归*make*实例构建的所有目标的输出都被分组在一起，这可能会使输出更容易理解。然而，这也会导致在构建过程中长时间看不到输出，然后涌现大量输出。如果你不是在构建过程中观察构建，而是在构建完成后查看构建日志，这可能是最好的选择。
+
+如果您正在观看输出，那么在构建过程中长时间的安静间隔可能会令人沮丧。“`target`”输出同步模式可以检测何时使用标准方法递归调用*make*，并且不会同步这些行的输出。递归 *make* 将为其目标执行同步，每个目标的输出将在完成后立即显示。请注意，配方的递归行的输出是不同步的（例如，如果递归行在运行*make*之前打印了一条消息，则该消息将不会同步）。
+
+“`line`”模式对于观看制作输出的前端非常有用，以跟踪配方何时开始和完成。
+
+如果 *make* 调用的某些程序确定将输出写入终端而不是文件，则它们的行为可能会有所不同（通常被描述为“交互式(interactive)”与“非交互式(non-interactive)”模式）。例如，如果许多可以显示彩色输出的程序，在确定它们不是在向终端写入，它们就不会这样做。如果您的 *makefile* 调用这样的程序，那么使用输出同步选项将使程序相信它是在“非交互式”模式下运行的，即使输出最终会到达终端。
 
 ### 5.4.3 并行执行期间的输入
+两个进程不能同时从同一设备获取输入。为了确保只有一个配方尝试同时从终端获取输入，*make* 将使除正在运行的配方外的所有配方的标准输入流无效。如果另一个配方试图从标准输入中读取，通常会产生致命错误（“*Broken pipe*”信号）。
+
+不可预测的是，哪个配方将具有有效的标准输入流（来自终端，或重定向 *make* 的标准输入的任何地方）。第一个配方运行总是会先得到它，在完成后开始的第一个配方会得到下一个，以此类推。
+
+**如果我们找到更好的替代方案，我们将改变 *make* 在这方面的工作方式。同时，如果您使用并行执行功能，则不应依赖任何使用标准输入的配方；但如果你没有使用这个功能，那么标准输入在所有配方中都能正常工作**。
 
 ## 5.5 配方中的错误
+每次 *shell* 调用返回后，*make* 都会查看其退出状态。如果 *shell* 成功完成（退出状态为零），则在新的 *shell* 中执行配方中的下一行；最后一行执行结束后，规则就执行结束了。
+
+如果出现错误（退出状态为非零），*make* 放弃当前规则，也许放弃所有规则。
+
+有时，某一配方行的错误并不表示有问题。例如，您可以使用 `mkdir` 命令来确保目录存在。如果目录已经存在， `mkdir` 将报告一个错误，但您可能希望 *make* 继续。
+
+要忽略配方行中的错误，请在该行文本的开头（在初始 *tab* 之后）写一个“`-`”。在将该行传递给 *shell* 执行之前，将丢弃“`-`”。
+
+例如:
+
+```makefile
+clean:
+    -rm -f *.o
+```
+
+这导致即使 `rm` 无法删除文件，*make* 也会继续。
+
+当您使用“`-i`”或“`--ignore errors`”标志运行make时，所有规则的所有配方中都会忽略错误。如果没有先决条件，则特殊目标“`.IGNORE`”的 *makefile* 中的规则具有相同的效果。这不太灵活，但有时很有用。
+
+当由于“`-`”或“`-i`”标志而忽略错误时，*make* 会将错误返回视为成功，只是它会打印一条消息，告诉您 *shell* 退出的状态代码，并表示已忽略错误。
+
+当发生一个 *make* 没有被告知要忽略的错误时，这意味着当前目标无法正确地重新生成，直接或间接依赖它的任何其他目标也无法正确地生成。由于这些目标的前提(precondition)尚未实现，因此不会执行这些目标的进一步的配方。
+
+通常情况下，*make* 会在这种情况下立即放弃，返回非零状态。但是，如果指定了“`-k`”或“`--keep-going`”标志，*make* 将继续考虑挂起目标的其他先决条件，如有必要，在放弃并返回非零状态之前对其进行重制。例如，在编译一个对象文件时出错后，“`make -k`”将继续编译其他对象文件，即使它已经知道无法链接它们。请参阅 [9.8 Summary of Options](https://www.gnu.org/software/make/manual/make.html#Options-Summary)。
+
+通常的行为会假设您的目的是使指定的目标更新到最新；一旦 *make* 得知这是不可能的，它还不如立即报告失败。“`-k`”选项表示，真正的目的是测试程序中尽可能多的更改，也许是为了找到几个独立的问题，以便在下次尝试编译之前将其全部更正。这就是为什么默认情况下 Emacs(译者注，[GNU Emacs](https://www.gnu.org/software/emacs/) 是一款文本编辑器) 的`compile`命令会默认传递“`-k`”标志。
+
+通常，当配方行出现故障时，如果它已经更改了目标文件，则该文件已损坏，无法使用——或者至少没有完全更新。然而，文件的时间戳表明它现在是最新的，所以下次运行时，它不会尝试更新该文件。这种情况与 shell 被信号终止时的情况完全相同；请参阅 [5.6 Interrupting or Killing make](https://www.gnu.org/software/make/manual/make.html#Interrupts)。因此，如果在开始更改文件后执行配方失败，通常正确的做法是删除目标文件。如果“`.DELETE_ON_ERROR`”作为目标出现，*make* 将执行此操作。这几乎总是你想做的，但这不是历史实践；因此，为了实现兼容性，您必须明确地请求它。
 
 ## 5.6 中断或终止make
+如果 *make* 在执行 *shell* 时收到致命信号，它可能会删除配方应该更新的目标文件。如果目标文件的上次修改时间自 *make* 第一次检查后发生了更改，则会执行此操作。
+
+删除目标的目的是确保在下次运行 *make* 时从头开始重新制作它。为什么会这样？假设您在编译器运行并且它已经开始写入对象文件 *foo.o* 时键入 `Ctrl-c`。`Ctrl-c`会终止编译器，导致一个不完整的文件，其上次修改时间比源文件 *foo.c* 新。但是 *make* 也会收到 `Ctrl-c` 信号并删除此不完整的文件。如果 *make* 没有这样做，那么下一次调用 *make* 时会认为 *foo.o* 不需要更新——当链接器试图链接一个对象文件时，会从链接器中产生一条奇怪的错误消息，其中一半丢失了。
+
+您可以通过将特殊目标`.PRECIOUS`依赖于此目标文件，来防止以这种方式删除目标文件。
+
+
 
 ## 5.7 make的递归使用
 递归使用 *make* 意味着在 makefile 中使用 `make` 作为命令。当组成更大系统的各个子系统需要分离的 *makefile* 时，此技术非常有用。例如，假设您有一个子目录 *subdir*，它有自己的 *makefile*，并且您希望包含目录的 *makefile* 在该子目录上运行 *make*。你可以这样写：
@@ -1199,7 +1347,7 @@ export variable
 
 您可能会注意到，`export` 和 `unexport` 指令在 *make* 中的工作方式与它们在 *shell sh* 中的工作方式相同。
 
-如果希望默认情况下导出所有变量，则可以单独使用导出：
+如果希望默认情况下导出所有变量，则可以单独使用 `export`：
 
 ```sh
 export
@@ -1209,22 +1357,148 @@ export
 
 导出指令本身引发的行为是旧版本 GNU *make* 中的默认行为。如果您的 makefile 依赖于此行为，并且希望与旧版本的 make 兼容，则可以添加特殊目标 `.EXPORT_ALL_VARIABLES` 到 makefile，而不是使用 `export` 指令。这将被旧的 *make* 忽略，而`export` 指令将导致语法错误。
 
+默认情况下，使用`export`本身或`.export_ALL_VARIABLES`导出变量时，仅导出名称仅由字母数字和下划线组成的变量。若要导出其他变量，必须在`export`指令中特别提及它们。
 
-(部分内容尚未翻译)
+将变量的值添加到环境中需要对其进行扩展。如果扩展变量有副作用（如`info`或`eval`或类似函数），则每次调用命令时都会看到这些副作用。您可以通过确保这些变量的名称在默认情况下不可导出来避免这种情况。然而，更好的解决方案是根本不使用这种“默认导出”功能，而是按名称显式`export`相关变量。
+
+默认情况下，您可以使用`unexport`本身来告诉 *make* 不要导出变量。由于这是默认行为，因此只有在早些时候使用过“`export`”本身（可能在包含的 makefile 中），才需要执行此操作。您不能使用`export`和`unexport`本身来导出某些配方的变量，而不能导出其他配方的变量。最后一个单独出现的`export`或`unexport`指令决定整个 *make* 运行的行为。
+
+作为一项特殊功能，变量 `MAKEVEL` 在从一个级别传递到另一个级别时会发生更改。此变量的值是一个字符串，它是以十进制数表示的级别深度。顶层 *make* 的值为"0"；"1"代表一个 *sub-make*，"2"代表一个 *sub-sub-make*，依此类推。当 *make* 为配方设置环境时，增量就会发生。
+
+`MAKLELEVEL`的主要用途是在条件指令中测试它（请参阅 [7 Conditional Parts of Makefiles](https://www.gnu.org/software/make/manual/make.html#Conditionals)）；通过这种方式，您可以编写一个 *makefile*，如果以递归方式运行，则以一种方式运行，如果由您直接运行，则采用另一种方式。
+
+可以使用变量`MAKEFILES`使所有 sub-*make* 命令使用其他生成文件。`MAKEFILES`的值是一个以空格分隔的文件名列表。如果在外部级别的 *makefile* 中定义了该变量，则该变量将通过环境传递；然后它作为一个额外的 *makefile* 列表，供sub-*make*在通常或指定的makefile之前读取。请参阅 [3.4 The Variable MAKEFILES](https://www.gnu.org/software/make/manual/make.html#MAKEFILES-Variable)。
 
 ### 5.7.3 将选项传达给Sub-make
+诸如“`-s`”和“`-k`”之类的标志通过变量`MAKEFLAGS`自动传递给 sub-*make*。此变量由*make*自动设置，以包含 *make* 收到的标志字母。因此，如果执行“`make-ks`”，则`MAKEFLAGS`将获得值“`ks`”。
+
+因此，每个 sub-*make* 都会在其环境中获得一个`MAKEFLAGS`值。作为响应，它从该值中获取标志，并将它们作为参数进行处理。请参阅 [9.8 Summary of Options](https://www.gnu.org/software/make/manual/make.html#Options-Summary)。这意味着，与其他环境变量不同，环境中指定的`MAKEFLAGS`优先于 *makefile* 中指定的`MAKEFLAGS`。
+
+`MAKEFLAGS`的值可能是一组空字符，表示不带参数的单字母选项，后面跟一个空格以及带参数或具有长选项名称的任何选项。如果一个选项同时具有单字母选项和长选项，则始终首选单字母选项。如果命令行上没有单字母选项，则`MAKEFLAGS`的值以空格开头。
+
+同样，命令行上定义的变量也通过`MAKEFLAGS`传递给 sub-*make*。`MAKEFLAGS`值中包含“=”的单词，将其视为变量定义，就像它们出现在命令行上一样。请参见 [9.5 Overriding Variables](https://www.gnu.org/software/make/manual/make.html#Overriding)。
+
+未放入`MAKEFLAGS`的选项"`-C`"、"`-f`"、"`-o`"和"`-W`"；这些选项不会被传递下去。
+
+"`-j`" 选项是一种特殊情况（请参阅 [5.4 Parallel Execution](https://www.gnu.org/software/make/manual/make.html#Parallel)）。如果您将其设置为某个数值“N”，并且您的操作系统支持它（大多数UNIX系统都支持；其他系统通常不支持），则父make和所有子make将进行通信，以确保它们之间只有“N”个作业同时运行。请注意，任何标记为递归的作业（请参阅 [9.3 Instead of Executing Recipes](https://www.gnu.org/software/make/manual/make.html#Instead-of-Execution)）都不计入总作业数（否则，我们可能会运行“N”个 sub-*make*，并且没有剩余的槽位用于任何实际作业！）
+
+如果您的操作系统不支持上述通信，则不会向`MAKEFLAGS`中添加 "`-j`"，因此 sub-*make* 将以非并行模式运行。如果 "`-j`" 选项被传递给 sub-*make*，你会得到比你要求的更多的并行工作。如果你给出的 "`-j`"没有数字参数，意思是并行运行尽可能多的作业，这一点会被传递下去，因为多个无穷大也不过就是一个无穷大（译者注：原文是 since multiple infinities are no more than one）。
+
+如果不想传递其他标志，则必须更改`MAKEFLAGS`的值，例如：
+
+```makefile
+subsystem:
+    cd subdir && $(MAKE)MAKEFLAGS=
+```
+
+命令行变量定义实际出现在变量 `MAKEOVERRIDES` 中，并且 `MAKEFLAGS` 包含对此变量的引用。如果您确实想正常传递标志，但不想传递命令行变量定义，可以将`MAKEOVERRIDES`重置为空，如下所示：
+
+```makefile
+MAKEOVERRIDES =
+```
+
+这样做通常没有用处。但是，有些系统对环境的尺寸有一个小的固定限制，将太多信息放入`MAKEFLAGS`的值可能会超过这个限制。如果您看到错误消息 “**Arg-list too long**”，这可能是问题所在。（为了严格遵守POSIX.2，如果特殊目标“.POSIX”出现在生成文件中，则更改`MAKEOVERRIDES`不会影响`MAKEFLAGS`。您可能并不关心这一点。）
+
+为了历史兼容性，还存在类似的变量`MFLAGS`。它与`MAKEFLAGS`具有相同的值，只是它不包含命令行变量定义，并且它总是以连字符(hyphen)开头，除非它为空（`MAKEFLAGS`只有在它以没有单字母版本的选项（如"`--warn undefined variables`"）开头时才以连字符开始）。以往`MFLAGS`在递归 *make* 命令中显式使用，如下所示：
+
+```makefile
+subsystem:
+    cd subdir && $(MAKE) $(MFLAGS)
+```
+
+但现在 `MAKEFLAGS` 使这种使用变得多余。如果您希望您的 *makefile* 与旧的 *make* 程序兼容，请使用此技术；它也可以与更现代的版本配合使用。
+
+如果您希望在每次运行 *make* 时设置某些选项，如“`-k`”（请参阅 [9.8 Summary of Options](https://www.gnu.org/software/make/manual/html_node/Options-Summary.html)）），则`MAKEFLAGS`变量也很有用。您只需在您的环境中为`MAKEFLAGS`设置一个值。您也可以在 *makefile* 中设置 `MAKEFLAGS`，以指定其他标志，这些标志也应该对该 *makefile* 有效。（请注意，不能以这种方式使用`MFLAGS`。该变量的设置仅用于兼容性；*make* 不会以任何方式解释您为其设置的值。）
+
+当 *make* 解释 `MAKEFLAGS` 的值（无论是来自环境或 *makefile* ）时，如果该值尚未以连字符开头，它首先会在前加一个连字符。然后，它将值切割成用空格分隔的单词，并将这些单词解析为命令行上给定的选项（除了“`-C`”、“`-f`”、“`-h`”、“`-o`”、“`-W`”及其长名称版本被忽略；无效选项不会出错）。
+
+如果您确实将`MAKEFLAGS`放在环境中，则应确保不要包含任何会严重影响 *make* 操作并破坏 *makefile* 和 *make* 本身目的的选项。例如，“-t”、“-n”和“-q”选项，如果放在其中一个变量中，可能会产生灾难性的后果，而且肯定会产生至少令人惊讶和可能令人讨厌的影响。
+
+如果除了GNU *make*之外，您还想运行 *make* 的其他实现，因此不想将GNU *make*特定的标志添加到`MAKEFLAGS`变量中，则可以将它们添加到`GNUMAKEFLAGS`变量中。此变量在`MAKEFLAGS`之前进行解析，解析方式与`MAKEFLAGS`相同。当 *make* 构造`MAKEFLAGS`传递给 递归*make* 时，它将包括所有标志，甚至是从`GNUMAKEFLAGS`获取的标志。因此，在解析`GNUMAKEFLAGS`之后，GNU make将此变量设置为空字符串，以避免在递归过程中重复标志。
+
+最好只将`GNUMAKEFLAGS`与不会实质性改变 *makefile* 行为的标志一起使用。如果您的 *makefile* 无论如何都需要 GNU Make，那么只需使用`MAKEFLAGS`。诸如“`--no-print-directory`”或“`--output-sync`”之类的标志可能适用于 `GNUMAKEFLAGS`。
 
 ### 5.7.4 "--print directory"选项
+如果您使用多个级别的递归 *make* 调用，“`-w`”或“`--print directory`”选项可以在 *make* 开始处理和 *make* 完成处理时显示每个目录，从而使输出更容易理解。例如，如果“`make -w`”在目录 */u/gnu/make* 中运行，*make*将在做任何事情之前打印以下形式的一行：
 
-## 5.8 定义罐头配方
+```sh
+make: Entering directory `/u/gnu/make'.
+```
+并且会在过程完成后打印以下形式的一行：
+```sh
+make: Leaving directory `/u/gnu/make'.
+```
+
+通常，您不需要指定此选项，因为 *make* 可以为您指定：当您使用“`-C`”选项时，“`-w`”会自动打开，并且在 sub-*make*S 中也是如此。如果同时使用“`-s`”（表示为静默），或者使用“`--no print directory`”显式禁用它，make将不会自动启用“`-w`”。
+
+## 5.8 定义预制配方(Canned Recipes)
+当相同的命令序列在制作各种目标时很有用时，可以使用`define`指令将其定义为预制序列，并从这些目标的配方中引用预制序列。预制序列实际上是一个变量，因此名称不能与其他变量名称冲突。
+
+以下是定义预制配方的示例：
+```makafile
+define run-yacc =
+yacc $(firstword $^)
+mv y.tab.c $@
+endef
+```
+
+这里，`run-yacc`是所定义的变量的名称；`endef`标志着定义的结束；中间的行是命令(command)。`define`指令不会预制序列中扩展变量引用和函数调用；“`$`”字符、圆括号、变量名等都将成为您定义的变量值的一部分。有关`define`指令的完整解释，请参见 [6.8 Defining Multi-Line Variables](https://www.gnu.org/software/make/manual/make.html#Multi_002dLine)。
+
+本例中的第一个命令在使预制序列的规则的第一个先决条件下运行Yacc。Yacc的输出文件始终命名为 *y.tab.c*。第二个命令将输出改动至规则的目标文件名。
+
+要使用预制序列，请将变量替换为规则的配方。您可以像替换任何其他变量一样替换它（请参见 [6.1 Basics of Variable References](https://www.gnu.org/software/make/manual/make.html#Reference)）。因为`define`定义的变量是递归扩展的变量，所以您在`define`中编写的所有变量引用，此时都被扩展了。例如：
+
+```makefile
+foo.c : foo.y
+    $(run-yacc)
+```
+当变量"`$^`"出现在`run yacc`的值中时，"`foo.y`"将替换它，"`foo.c`"将替换"`$@`"。
+
+这是一个实际的例子，但实际上不需要这个特定的例子，因为 *make* 有一个隐式规则来根据所涉及的文件名来计算这些命令（请参阅 [10 Using Implicit Rules](https://www.gnu.org/software/make/manual/make.html#Implicit-Rules)）。
+
+在配方执行中，预制序列的每一行，都被视为该行以前置一个 *tab* 键的形式在规则中单独出现。特别是，*make* 为每一行调用一个单独的子shell。您可以在预制序列的每一行使用影响命令行（“@”、“-”和“+”）的特殊前缀字符。请参阅 [5 Writing Recipes in Rules](https://www.gnu.org/software/make/manual/make.html#Recipes)。例如，使用此预制序列：
+
+```makefile
+define frobnicate =
+@echo "frobnicating target $@"
+frob-step-1 $< -o $@-step-1
+frob-step-2 $@-step-1 -o $@
+endef
+```
+*make* 不会回显第一行，即回显命令。但它将回显后续的两条配方行。
+
+另一方面，配方行上引用预制序列的前缀字符适用于序列中的每一行。所以规则是：
+
+```makefile
+frob.out: frob.in
+    @$(frobnicate)
+```
+
+不回显任何配方行。（有关“`@`”的完整解释，请参阅 [5.2 Recipe Echoing](https://www.gnu.org/software/make/manual/make.html#Echoing)。）
+
 
 ## 5.9 使用空配方
 
-给出一个只包含空格的 recipe 即可（在10.1里说的是要写一个分号）。例如：
+有时定义什么都不做的配方是有用的。这只给出一个只包含空格的 recipe 即可（译者注：在10.1里说的是要写一个分号）。例如：
 
 ``` Makefile
 target: ;
 ```
+这为目标定义了一个空配方。您也可以使用以配方前缀字符开头的一行来定义空配方，但这会令人困惑，因为这一行看起来是空的。（译者注：例如
+```makefile
+# 注意第二行不是空的，而是有一个 tab 键的，默认没有修改过默认的 .RECIPEPREFIX 值
+target: 
+
+```
+关于这两种形式，参阅 [4.2 Rule Syntax](https://www.gnu.org/software/make/manual/make.html#Rule-Syntax)
+）
+
+你可能想知道为什么你想定义一个什么都不做的配方。这很有用的一个原因是防止目标获取隐式配方（来自隐式规则或特殊目标 `.DEFAULT`；请参阅 [10 Using Implicit Rules](https://www.gnu.org/software/make/manual/make.html#Implicit-Rules) 和 [10.6 Defining Last-Resort Default Rules](https://www.gnu.org/software/make/manual/make.html#Last-Resort)）。
+
+空配方也可以用来避免某些目标（这些目标会作为另一个配方的副作用被创建）的错误：如果目标不存在，空配方确保 *make* 不会抱怨它不知道如何构建目标，并且 *make* 会假设目标已经过时。
+
+您可能倾向于为“不是实际文件的、其存在只是为了重新制作其先决条件”的目标定义空配方。但是，这不是最好的方法，因为如果目标文件确实存在，则可能无法正确地重新生成先决条件。有关更好的方法，请参见 [4.6 Phony Targets](https://www.gnu.org/software/make/manual/make.html#Phony-Targets)。
+
 
 # 6 How to Use Variables
 
