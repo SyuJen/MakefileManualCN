@@ -61,7 +61,7 @@ target ... : prerquisited ...
 `recipe`是使 `make` 执行的动作，（译者注：在本文中将 recipe 翻译为配方，之前想将其翻译为“指令”，但和 directive 的翻译会发生重合。由于文档内容较多，校对复杂，部分位置还是保留了将 recipe 翻译为 指令 的） 。注意：需要在每个`recipe`行的开头放置一个制表符！
 
 示例：
-```
+```makefile
 edit : main.o kbd.o command.o display.o \
        insert.o search.o files.o utils.o
         cc -o edit main.o kbd.o command.o display.o \
@@ -105,7 +105,7 @@ clean :
 [How to Use Variables](https://www.gnu.org/software/make/manual/make.html#Using-Variables)
 
 示例：
-```
+```makefile
 objects = main.o kbd.o command.o display.o \
           insert.o search.o files.o utils.o
 
@@ -139,7 +139,7 @@ clean :
 
 当以这种方式自动使用“. c”文件时，此 . c文件也会自动添加到prerequisite列表中。因此，我们可以从prerequisite中省略 .c文件，前提是我们省略了recipe。
 
-```
+```makefile
 objects = main.o kbd.o command.o display.o \
     insert.o search.o files.o utils.o
 
@@ -164,7 +164,7 @@ clean :
 
 当 makefile 的 object **仅由隐式规则创建时**，makefile的另一种风格是可能的。在这种makefile风格中，可以按prerequisites而不是target对条目进行分组。
 
-```
+```makefile
 objects = main.o kbd.o command.o display.o \
           insert.o search.o files.o utils.o
 
@@ -184,7 +184,7 @@ display.o insert.o search.o files.o : buffer.h
 
 在实践中，我们可能希望以更复杂的方式编写规则来处理意料之外的情况。我们会使用 `.PHONY` ，这可以防止make被称为 _clean_ 的实际文件混淆，并导致它在rm出现错误的情况下继续运行。
 
-```
+```makefile
 .PHONY : clean
 clean :
         -rm edit $(objects)
@@ -230,20 +230,20 @@ Makefile使用“基于行”的语法。GNU make对语句行的长度没有限�
 
 如果您需要拆分一行但不希望添加任何空格，您可以利用一个微妙的技巧：使用美元符号、反斜杠和换行符三个字符：
 
-```
+```makefile
 var := one$\
        word
 ```
 
 make删除反斜杠及换行符并将以下行压缩为一行后，这相当于：
 
-```
+```makefile
 var := one$ word
 ```
 
 然后make将执行变量扩展。变量引用'$'指的是一个不存在的单字符名称“”（空格）的变量，因此扩展为空字符串，给出一个最终赋值，相当于：
 
-```
+```makefile
 var := oneword
 ```
 
@@ -1744,67 +1744,203 @@ all: foo.o lib/bar.o
 在这个例子中，CFLAGS变量的第一个定义将用于更新lib/bar. o，即使第二个定义也适用于这个目标。导致相同词干长度的模式特定变量则按照它们在makefile中定义的顺序被考虑。
 
 特定于模式的变量 会在 为该目标所显式定义的特定于目标的变量 之后被搜索，在 为父目标定义的特定于目标的变量 之前被搜索。
-# 7 条件句语法
+# 7 *Makefile* 的条件句部分
+根据变量的值，条件(conditional)指令会导致 *makefile* 的一部分被遵守或忽略。条件可以将一个变量的值与另一个变量进行比较，或者将变量的值与常量字符串做比较。条件控制 *make* 在 *makefile* 中实际“看到”的内容，因此在执行时不能用于控制配方。
+
+## 7.1 条件句举例
+下面的条件表达式示例告诉 *make*，如果`CC`变量为“`gcc`”则使用一组库，否则使用另一组库。它的工作原理是控制两个配方行中的哪一个将用于规则。结果是，“`CC=gcc`”作为一个参数，不仅可以更改使用的编译器，还可以更改链接的库。
+
+```makefile
+libs_for_gcc = -lgnu
+normal_libs =
+
+foo: $(objects)
+ifeq ($(CC),gcc)
+    $(CC) -o foo $(objects) $(libs_for_gcc)
+else
+    $(CC) -o foo $(objects) $(normal_libs)
+endif
+```
+
+这个条件句使用三个指令：`ifeq`、`else` 和 `endif`。
+
+`ifeq`指令开启了条件句，并指定条件。它包含两个参数，用逗号分隔，并用括号括起来。对两个参数执行变量替换，然后对它们进行比较。如果两个参数匹配，则会遵守 `ifeq` 后面的 *makefile* 行；否则它们将被忽略。
+
+如果前一个条件失败，`else` 指令将导致遵守以下行。在上面的例子中，这意味着每当不使用第一备选方案时，就使用第二备选方案链接命令。在条件句中是否包含 `else` 是可选的。
+
+`endif`指令结束条件句。每个条件句都必须以`endif`结尾。*makefile* 中的非条件句文本可以列写在其后。
+
+如本例所示，条件语句在文本级别工作：根据条件，条件语句的行被视为 *makefile* 的一部分，或者被忽略。这就是为什么 *makefile* 中较大的语法单元（如规则）可能会跨越条件的开头或结尾。
+
+当变量`CC`的值为“`gcc`”时，上面的示例具有以下效果：
+```makefile
+foo: $(objects)
+    $(CC) -o foo $(objects) $(libs_for_gcc)
+```
+
+当变量`CC`具有任何其他值时，效果如下：
+```makefile
+foo: $(objects)
+    $(CC) -o foo $(objects) $(normal_libs)
+```
+可以通过另一种方式，如通过条件句变量赋值，然后非条件地使用变量，获得等效结果：
+
+```makefile
+libs_for_gcc = -lgnu
+normal_libs =
+
+ifeq ($(CC),gcc)
+  libs=$(libs_for_gcc)
+else
+  libs=$(normal_libs)
+endif
+
+foo: $(objects)
+    $(CC) -o foo $(objects) $(libs)
+```
 
 ## 7.2 条件句语法
 
-对条件进行判断有4种指令
-1：
+不带`else`的简单条件的语法如下：
+```makefile
+conditional-directive
+text-if-true
+endif
 ```
+
+`text-if-true` 可以是任意一行文本，如果条件为 true，则视为 *makefile* 的一部分。如果条件为 false，则不使用任何文本。
+
+复杂条件的语法如下：
+
+```makefile
+conditional-directive
+text-if-true
+else
+text-if-false
+endif
+```
+或
+```makefile
+conditional-directive-one
+text-if-one-is-true
+else conditional-directive-two
+text-if-two-is-true
+else
+text-if-one-and-two-are-false
+endif
+```
+
+根据需要，可以有尽可能多的“`else`条件指令”子句。一旦给定条件为 true，则使用 `text-if-true`，而不使用其他子句；如果没有条件为 true，则使用 `text-if-false`。`text-if-true` 和 `text-if-false`可以是任意数量的文本行（译者注，如果您习惯使用 C 语言，那么需要注意与 C 语言不同的是，在 *makefile* 中的条件句不需要括号将其包围）。
+
+无论条件指令是简单的还是复杂的，在`else`之后或不是之后，条件指令的语法都是相同的。有四种不同的指令用于测试不同的条件。以下是它们的表格：
+
+``` makefile
 ifeq (arg1, arg2)
 ifeq 'arg1' 'arg2'
 ifeq "arg1" "arg2"
 ifeq "arg1" 'arg2'
 ifeq 'arg1' "arg2"
 ```
-展开 `arg1` 和 `arg2` 中的所有变量引用并比较它们是否相同
 
-```
+展开 `arg1` 和 `arg2` 中的所有变量引用并进行比较。如果它们完全相同，则 `text-if-true` 有效；否则，`text-if-false`（如果有的话）有效。
+
+通常，您希望测试变量是否具有非空值。当值由变量和函数的复杂展开产生时，您认为为空的展开实际上可能包含空白字符，因此不会被视为空。但是，您可以使用`strip`函数（请参阅 [8.2 Functions for String Substitution and Analysis](https://www.gnu.org/software/make/manual/make.html#Text-Functions)）来避免将空白字符（whitespace）解释为非空值。例如：
+
+```makefile
 ifeq ($(strip $(foo)),)
 text-if-empty
 endif
 ```
+即使`$(foo)`的扩展包含空白字符，也将评估`text-if-empty`（译者注，原文是 "will evaluate text-if-empty"，直译是“评估”，但我觉得原文想表达的是会执行`text-if-empty`）。
 
-2：
-```
+```makefile
 ifneq (arg1, arg2)
 ifneq 'arg1' 'arg2'
 ifneq "arg1" "arg2"
 ifneq "arg1" 'arg2'
 ifneq 'arg1' "arg2"
 ```
-展开 `arg1` 和 `arg2` 中的所有变量引用并比较它们是否不相同
+展开 `arg1` 和 `arg2` 中的所有变量引用并比较它们。如果不相同，则 `text-if-true` 有效；否则，`text-if-false`（如果有的话）有效。
 
-3：
-```
+```makefile
 ifdef variable-name
 ```
-判断 `variable-name` 是否被定义。注意：`variable-name` 仅会被展开一次，即使展开后是变量或是函数，也不会再被展开；并且如果展开的变量是空值，`ifdef` 语句也会被认为为`真`
-示例：
+
+`ifdef` 将变量名称作为其参数，而不是对变量的引用。如果该变量的值具有非空值，则`text-if-true`有效；否则，`text-if-false`（如果有的话）有效。从未定义过的变量的值为空。文本`variable-name`是展开的，因此它可以是一个可以扩展到变量名称的变量或函数。例如
+
+```makefile
+bar = true
+foo = bar
+ifdef $(foo)
+frobozz = yes
+endif
 ```
-bar = 
+
+变量引用 `$(foo)` 被扩展，扩展的结果是`bar`，它被认为是变量的名称。变量`bar`不会被展开，但会检查其值以确定其是否为非空。
+
+请注意，`ifdef` 只测试变量是否有值。它不会展开变量以查看该值是否为非空(译者注，注意：`variable-name` 仅会被展开一次，即使展开后是变量或是函数，也不会再被展开)。因此，使用`ifdef`的测试对于除 `foo =` 以外的所有定义都返回 true。要测试空值，请使用 `ifeq ($(foo),)`，例如
+
+```makefile
+bar =
 foo = $(bar)
-ifdef foo # 会被判断为真
-
-ifdef bar # 会被判断为假
+ifdef foo
+frobozz = yes
+else
+frobozz = no
+endif
 ```
 
-4：
+将 `frobozz` 设置为 `yes`，而
+
+```makefile
+foo =
+ifdef foo
+frobozz = yes
+else
+frobozz = no
+endif
 ```
+
+将 `frobozz` 设置为 `no`
+
+```makefile
 ifndef variable-name
 ```
 
-上述4中判断指令被总结为 *conditional-directive*
+如果变量 `variable-name` 的值为空，则`text-if-true`有效；否则，`text-if-false`（如果有的话）有效。`variable-name` 的扩展和测试规则与`ifdef`指令相同。
 
-完整的判断语句应该是：
-*conditional-directive*
-*text-if-true*
-`else`
-*text-if-false*
-*endif*
+条件指令行的开头允许并忽略额外的空格，但不允许使用制表符。如果该行以制表符开头，它将被视为规则配方(recipe for a rule)的一部分。除此之外，除了在指令名称或参数中之外，可以在任何位置插入额外的空格或制表符，且不会产生任何效果。以“#”开头的注释可以会出现在行的末尾。
 
-条件指令行的开头允许并忽略额外的空格，但不允许使用制表符。如果该行以制表符开头，它将被视为规则指令(recipe for a rule)的一部分。
-*make* 会在读取 Makefile 文件时评估条件语句，而自动变量是在 *reipce* 被执行后才被定义，所以条件语句中不允许使用自动变量
+在条件中起作用的另外两个指令是`else`和`endif`。这些指令中的每一个都被写成一个单词，没有参数。允许并忽略行开头的额外空格，以及末尾的空格或制表符。以“#”开头的注释可以会出现在行的末尾。
+
+条件语句会影响 make 的 *makefile* 的哪些行被使用。如果条件为true，*make* 将读取 `text-if-true` 作为 *makefile* 的一部分；如果条件为 false，make 将完全忽略这些行。因此，*make* 根据 *makefile* 的语法单元，可以将例如规则的这部分安全地在条件语法的开头或结尾进行拆分（译者注，我理解的意思是“可以将条件语句穿插在规则之中”）。
+
+*make* 会在读取 *Makefile* 文件时评估条件语句，而自动变量是在 *reipce* 被执行后才被定义，所以 **条件语句中不允许使用自动变量**（请参阅 [10.5.3 Automatic Variables](https://www.gnu.org/software/make/manual/make.html#Automatic-Variables)）。
+
+为了防止出现无法容忍的混乱，不允许在一个 *makefile* 中启动条件语句并在另一个 *makefile* 中结束它。但是，如果不尝试在包含的文件中终止条件语句，则可以在条件中编写 `include` 指令。
+
+## 7.3 用于测试 Flag 的条件句
+您可以编写一个条件语句，通过将变量 `MAKEFLAGS` 与 `findstring` 函数（请参阅 [8.2 Functions for String Substitution and Analysis](https://www.gnu.org/software/make/manual/make.html#Text-Functions)）一起使用，来测试 *make* 命令标志（如“-t”）。当 `touch` 不足以使文件显示为最新时，这很有用。
+
+回调(recall) `MAKEFLAGS` 会将所有单字母选项（如“-t”）放入第一个单词中，如果没有给出单字母选项，则该单词将为空。要处理此问题，在开头添加一个值以确保有一个词是很有帮助的：例如“`-$(MAKEFLAGS)`”。
+
+`findstring` 函数确定一个字符串是否显示为另一个字符串的子字符串。如果要测试“`-t`”标志，请将“t”用作第一个字符串，`MAKEFLAGS`的第一个单词用作另一个字符串。
+
+例如，以下是如何安排使用“`ranlib -t`”来完成对存档文件的最新标记：
+
+```makefile
+archive.a: …
+ifneq (,$(findstring t,$(firstword -$(MAKEFLAGS))))
+    +touch archive.a
+    +ranlib -t archive.a
+else
+    ranlib archive.a
+endif
+```
+
+前缀“`+`”将这些配方行标记为“递归”，这样即使使用了“`-t`”标志，它们也会被执行。请参见 [5.7 Recursive Use of make](https://www.gnu.org/software/make/manual/make.html#Recursion)。
+
+
 # 8 Functions for Transforming Text
 
 函数的目的是在makefile中进行文本处理，以计算要操作的文件或要在 recipes 中使用的命令。
