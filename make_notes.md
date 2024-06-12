@@ -8,8 +8,6 @@ with no Invariant Sections, no Front-Cover Texts, and no Back-Cover
 Texts.  A copy of the license is included in the section entitled ``GNU
 Free Documentation License''.
 
-创建一个名为 `makefile` 的文件，该文件描述程序中文件之间的关系，并提供更新每个文件的命令
-
 # 1 *make* 概述
 
 *make* 实用程序自动确定大型程序的哪些部分需要重新编译，并发出重新编译它们的命令。本手册描述了由 Richard Stallman 和 Roland McGrath 实现的 GNU *make*。自3.76版本以来的开发一直由 Paul D.Smith 负责。
@@ -41,7 +39,7 @@ make
 # 2 An Introduction to Makefiles
 你需要一个名为 *makefile* 的文件来告诉 *make* 该做什么。通常，*makefile* 会告诉 *make* 如何编译和链接程序。
 
-在本章中，我们将讨论一个简单的 *makefile*，该文件描述如何编译和链接由8个C源文件和3个头文件组成的文本编辑器。*makefile* 还可以告诉 *make* 如何在明确要求时运行其他命令（例如，作为清理操作删除某些文件）。要查看生成文件的更复杂示例，请参见 [Appendix C Complex Makefile Example](https://www.gnu.org/software/make/manual/make.html#Complex-Makefile)。
+在本章中，我们将讨论一个简单的 *makefile*，该文件描述如何编译和链接由8个C源文件和3个头文件组成的文本编辑器。*makefile* 还可以告诉 *make* 如何在明确要求时运行其他命令（例如，作为清理操作删除某些文件）。要查看生成文件的更复杂示例，请参阅 [Appendix C Complex Makefile Example](https://www.gnu.org/software/make/manual/make.html#Complex-Makefile)。
 
 当 *make* 重新编译编辑器时，必须重新编译每个更改过的C源文件。如果头文件发生了更改，则必须重新编译包含该头文件的每个C源文件，以确保安全。每次编译都会生成一个与源文件相对应目标文件。最后，如果重新编译了任何源文件，则所有对象文件，无论是新创建的还是从以前的编译中保存的，都必须链接在一起，以生成新的可执行编辑器（译者注，这里原文就是 new executable editor，虽然我感觉 editor 这个词怪怪的）。
 
@@ -224,7 +222,7 @@ Makefile使用“基于行”的语法。GNU make对语句行的长度没有限�
 
 处理反斜杠及换行符组合的方式取决于语句是recipe行还是非recipe行。处理recipe行中的反斜杠及换行符组合将在后面讨论，见[5.1.1 Splitting Recipe Lines](https://www.gnu.org/software/make/manual/make.html#Splitting-Recipe-Lines)
 
-在recipe行之外，反斜杠及换行符组合将转换为单个空格字符。完成后，反斜杠及换行符组合**周围的所有空格都将压缩为单个空格**：这包括反斜杠之前的所有空格、反斜杠/换行符之后行首的所有空格以及任何连续的反斜杠/换行符组合。
+在recipe行之外，反斜杠及换行符组合将转换为单个空格字符。完成后，反斜杠及换行符组合**周围的所有空格都将压缩为单个空格**：这包括反斜杠之前的所有空格、“反斜杠-换行符”之后行首的所有空格以及任何连续的“反斜杠-换行符”组合。
 
 #### Splitting Without Adding Whitespace
 
@@ -241,7 +239,7 @@ make删除反斜杠及换行符并将以下行压缩为一行后，这相当于�
 var := one$ word
 ```
 
-然后make将执行变量扩展。变量引用'$'指的是一个不存在的单字符名称“”（空格）的变量，因此扩展为空字符串，给出一个最终赋值，相当于：
+然后make将执行变量展开。变量引用'$'指的是一个不存在的单字符名称“”（空格）的变量，因此展开为空字符串，给出一个最终赋值，相当于：
 
 ```makefile
 var := oneword
@@ -271,9 +269,9 @@ var := oneword
 
 GNU make的工作分为两个不同的阶段。在第一阶段，它读取所有makefile，并内化**所有**变量及其值以及隐式和显式规则，并构建所有目标及其 prerequisites 的依赖关系图。在第二阶段，make使用这些内化数据来确定哪些 targets 需要更新，并运行更新它们所需的 recipe。
 
-在第一阶段，变量及函数拓展是 immedia，相对的，也有 deferred 的拓展。理解这两个概念是重要的，详见 [3.7 How make Reads a Makefile](https://www.gnu.org/software/make/manual/make.html#Reading-Makefiles)
+在第一阶段，变量及函数展开是 immedia，相对的，也有 deferred 的展开。理解这两个概念是重要的，详见 [3.7 How make Reads a Makefile](https://www.gnu.org/software/make/manual/make.html#Reading-Makefiles)
 
-对于shell赋值操作符 `!=` , 右侧立即计算并交给shell。结果存储在左侧命名的变量中，该变量被视为递归扩展变量（因此将在每个引用上重新计算）。
+对于shell赋值操作符 `!=` , 右侧立即计算并交给shell。结果存储在左侧命名的变量中，该变量被视为递归展开变量（因此将在每个引用上重新计算）。
 ## 3.8 How Makefiles Are Parsed
 
 宏定义应定义在一物理行内，否则使用 $ 对变量进行展开时，不会重新拆分行。
@@ -315,7 +313,7 @@ targets : prerequisites ; recipe
 
 指令(*recipe*)行以制表符（或 `.RECIPEPREFIX` 变量值中的第一个字符；见 [6.14 Other Special Variables](https://www.gnu.org/software/make/manual/make.html#Special-Variables)）开头。第一个指令行可能会以带有制表符的形式出现在先决条件之后的行中，也可能以带有分号的形式出现在同一行中。无论哪种方式，效果都是相同的。指令的语法还有其他差异。请参阅  [5 Writing Recipes in Rules](https://www.gnu.org/software/make/manual/make.html#Recipes)。
 
-因为美元符号(`$`)用于开始创建变量引用，所以如果您真的想在 target 或 prerequisite 中使用美元符号，您必须编写两个, 即`$$` (见 [6 How to Use Variables](https://www.gnu.org/software/make/manual/make.html#Using-Variables)）。如果您启用了二次扩展（请参阅 [3.9 Secondary Expansion](https://www.gnu.org/software/make/manual/make.html#Secondary-Expansion)）并且您想在 prerequisite列表 中使用字面上的美元符号，您必须编写四个美元符号 (`$$$$`).
+因为美元符号(`$`)用于开始创建变量引用，所以如果您真的想在 target 或 prerequisite 中使用美元符号，您必须编写两个, 即`$$` (见 [6 How to Use Variables](https://www.gnu.org/software/make/manual/make.html#Using-Variables)）。如果您启用了二次展开（请参阅 [3.9 Secondary Expansion](https://www.gnu.org/software/make/manual/make.html#Secondary-Expansion)）并且您想在 prerequisite列表 中使用字面上的美元符号，您必须编写四个美元符号 (`$$$$`).
 
 您可以“反斜杠+换行符"来拆分长行，但这不是必需的，因为 make 对 makefile 中的行长度没有限制。
 
@@ -337,7 +335,7 @@ targets : normal-prerequisites | order-only-prerequisites
 
 普通先决条件部分可以是空的。此外，您仍然可以为同一目标声明多行先决条件：它们会被适当地附加（普通先决条件被附加到普通先决条件的列表中；仅声明顺序的先决条件则被附加到仅声明顺序的先决条件的列表中）。请注意，如果您将同一文件声明为 normal 和 order-only ，则 normal 优先。
 
-在确定 target 是否过期时，从不检查 order-only prerequisites；即使 order-only prerequisites 被标记为假(phony)（请参见 [4.6 phony Targets](https://www.gnu.org/software/make/manual/make.html#Phony-Targets)）也不会导致重建目标。
+在确定 target 是否过期时，从不检查 order-only prerequisites；即使 order-only prerequisites 被标记为假(phony)（请参阅 [4.6 phony Targets](https://www.gnu.org/software/make/manual/make.html#Phony-Targets)）也不会导致重建目标。
 
 假设，您的目标将被放置在一个单独的目录中，而在运行make之前，该目录可能不存在。在这种情况下，您希望在将任何目标放入目录之前创建目录，但由于每当添加、删除或重命名文件时，目录上的时间戳都会发生变化，因此我们当然不希望在目录的时间戳发生变化时重新生成所有目标。管理此问题的一种方法是使用仅声明顺序的先决条件：使目录成为所有目标的仅声明顺序的先决条件：
 
@@ -367,9 +365,9 @@ $(OBJDIR):
 
 如果一个表达式与多个文件匹配，则将对结果进行排序。2但是，不会对多个表达式进行全局排序。例如，\*.c \*.h 将列出排序后的所有名称以“.c”结尾的文件，然后是排序后的所有名称以”.h“结尾的文件。
 
-文件名开头的字符 `~` 也具有特殊意义。如果是单独的，或者后面跟一个斜线，它表示您的主目录。例如，`~/bin` 扩展为 `/home/you/bin`。如果 `~` 后面跟着一个单词，则该字符串表示用该单词命名的用户的主目录。例如 `~john/bin` 扩展为 `/home/john/bin` 。在没有每个用户主目录的系统（如MS-DOS或MS Windows）上，可以通过设置环境变量 HOME 来模拟此功能。
+文件名开头的字符 `~` 也具有特殊意义。如果是单独的，或者后面跟一个斜线，它表示您的主目录。例如，`~/bin` 展开为 `/home/you/bin`。如果 `~` 后面跟着一个单词，则该字符串表示用该单词命名的用户的主目录。例如 `~john/bin` 展开为 `/home/john/bin` 。在没有每个用户主目录的系统（如MS-DOS或MS Windows）上，可以通过设置环境变量 HOME 来模拟此功能。
 
-通配符扩展由 make 在目标和先决条件中自动执行。在 recipe 中，shell 负责通配符扩展。在其他情况下，只有当您使用 *wildcard* 函数明确请求通配符扩展时，才会进行通配符扩展。
+通配符展开由 make 在目标和先决条件中自动执行。在 recipe 中，shell 负责通配符展开。在其他情况下，只有当您使用 *wildcard* 函数明确请求通配符展开时，才会进行通配符展开。
 
 通配符的特殊意义可以通过在其前面加一个反斜杠来关闭。因此，`foo\*bar`将引用一个特定的文件，该文件的名称由“foo”、星号和“bar”组成。
 
@@ -379,7 +377,7 @@ $(OBJDIR):
 
 ### 4.4.3 `wildcard` 函数
 
-通配符扩展在规则(rules)中自动发生，但在**设置变量时或在函数的参数中**通常不会发生。此时则需要使用 `wildcard` 函数。
+通配符展开在规则(rules)中自动发生，但在**设置变量时或在函数的参数中**通常不会发生。此时则需要使用 `wildcard` 函数。
 
 ```
 $(wildcard pattern…)
@@ -387,7 +385,7 @@ $(wildcard pattern…)
 
 此字符串在makefile中的任何位置使用，将替换为与给定 *pattern* 之一匹配的现有文件名的以空格分隔的列表。如果没有现有文件名与 *pattern* 匹配，则 `wildcard` 函数的输出中省略该 *pattern*。请注意，这与在规则中不匹配的通配符的行为不同，在规则中，它们被逐字使用而不是忽略（请参阅使用通配符的陷阱）。
 
-与规则中的通配符扩展一样，`wildcard` 函数的结果是排序的。但是，每个单独的表达式都是单独排序的，因此 `$(wildcard *.c *.h)` 将先排序所有匹配 '.c' 的文件，然后是所有匹配 '.h' 的文件。
+与规则中的通配符展开一样，`wildcard` 函数的结果是排序的。但是，每个单独的表达式都是单独排序的，因此 `$(wildcard *.c *.h)` 将先排序所有匹配 '.c' 的文件，然后是所有匹配 '.h' 的文件。
 
 ## 4.5 Searching Directories for Prerequisites
 
@@ -440,7 +438,7 @@ _vpath_ 中的 _pattern_ 是包含 `%` 字符的字符串。该字符串必须�
 
 ### 4.5.4 使用目录搜索编写 Recipes
 
-这是通过诸如“$^”之类的自动变量来完成的（请参见自动变量）。
+这是通过诸如“$^”之类的自动变量来完成的（请参阅自动变量）。
 
 当通过目录搜索在另一个目录中找到 prerequisite 时，这不能改变 rule 的 recipe ；它们将按所写的那样执行。因此，您必须小心编写 recipe，以便它使用 make 找到的 prerequisite 所在目录中的 prerequisite 。
 
@@ -483,7 +481,7 @@ foo : foo.c -lcurses
 
 尽管要搜索的默认文件集是 `libname.so` 和 `libname.a` ，但这是可以通过 `.LIBPATTERNS` 变量自定义的。此变量值中的每个单词都是一个模式字符串。当看到诸如“-lname”之类的先决条件时，*make* 将用 *name* 替换列表中每个模式中的百分号(%)，并使用每个库文件名执行上述目录搜索。
 
-`.LIBPATTERNS` 的默认值 是 `lib%.so lib%.a`，它提供了上述默认行为。通过将此变量设置为空值，可以完全关闭链接库扩展。
+`.LIBPATTERNS` 的默认值 是 `lib%.so lib%.a`，它提供了上述默认行为。通过将此变量设置为空值，可以完全关闭链接库展开。
 
 ## 4.6 伪目标(Phony Targets)
 一个伪目标并不是一个文件的真正名称；相反，它只是当您发出明确请求时要执行的 recipe 的名称。使用伪目标有两个原因：一是为了避免与同名文件发生冲突，二是为了提高性能。
@@ -508,7 +506,7 @@ clean:
 
 .PHONY 的先决条件总是被解释为字面上的目标名称，而不是模式(pattern)（即使它们包含“%”字符）。若要始终重新生成模式规则(pattern rule)，请考虑使用“force target”（请参阅 [4.7  Rules without Recipes or Prerequisites](https://www.gnu.org/software/make/manual/make.html#Force-Targets)）。
 
-伪目标与 make 的递归调用结合使用也很有用（请参见 [5.7  Recursive Use of make](https://www.gnu.org/software/make/manual/make.html#Recursion)）。在这种情况下，makefile通常会包含一个变量，该变量列出了要构建的多个子目录。处理这一问题的一种简单方法是定义一个 recipe 在子目录上循环的规则，如下所示：
+伪目标与 make 的递归调用结合使用也很有用（请参阅 [5.7  Recursive Use of make](https://www.gnu.org/software/make/manual/make.html#Recursion)）。在这种情况下，makefile通常会包含一个变量，该变量列出了要构建的多个子目录。处理这一问题的一种简单方法是定义一个 recipe 在子目录上循环的规则，如下所示：
 
 ```makefile
 SUBDIRS = foo bar baz
@@ -519,7 +517,7 @@ subdirs:
         done
 ```
 
-然而，这种方法也存在问题。首先，此规则会忽略在 sub-make 中检测到的任何错误，因此即使失败，它也会继续生成其余目录。这可以通过添加 shell 命令来记录错误并退出来的方式克服，但即使使用 -k 选项调用make，它也会这样做，这很不幸。第二点（但也许更重要的一点），您不能充分利用 make 的并行构建目标的能力（请参阅 [5.4 Parallel Execution](https://www.gnu.org/software/make/manual/make.html#Parallel)），因为只有一个规则。每个 makefile 的目标都将并行构建，但一次只能构建一个子目录。
+然而，这种方法也存在问题。首先，此规则会忽略在 sub-*make* 中检测到的任何错误，因此即使失败，它也会继续生成其余目录。这可以通过添加 shell 命令来记录错误并退出来的方式克服，但即使使用 -k 选项调用make，它也会这样做，这很不幸。第二点（但也许更重要的一点），您不能充分利用 make 的并行构建目标的能力（请参阅 [5.4 Parallel Execution](https://www.gnu.org/software/make/manual/make.html#Parallel)），因为只有一个规则。每个 makefile 的目标都将并行构建，但一次只能构建一个子目录。
 
 通过将子目录声明为伪目标（您必须这样做，因为子目录显然总是存在的；否则它将无法构建）您可以消除这些问题。
 
@@ -542,7 +540,7 @@ foo: baz
 
 伪目标不应该是真实目标文件的先决条件；如果是，则每次 make 考虑该文件时都会运行其 recipe (译者注，这里"考虑"的翻译可能有问题，原文是：its recipe will be run every time make considers that file)。只有当伪目标不是真正目标的先决条件时，伪目标的 recipe 才会仅在伪目标作为被指定目标时（请参阅 [9.2 Arguments to Specify the Goals](https://www.gnu.org/software/make/manual/make.html#Goals)）被执行。
 
-您不应该将包含的 makefile 声明为伪。伪目标并不代表真实的文件，而且由于伪目标总是被认为是过时的，所以 make 总是会重新生成它，然后重新执行它自己（请参见 [3.5 How Makefiles Are Remade](https://www.gnu.org/software/make/manual/make.html#Remaking-Makefiles)）。为了避免这种情况，如果重新构建了标记为假的包含文件，make 将不会重新执行自己。
+您不应该将包含的 makefile 声明为伪。伪目标并不代表真实的文件，而且由于伪目标总是被认为是过时的，所以 make 总是会重新生成它，然后重新执行它自己（请参阅 [3.5 How Makefiles Are Remade](https://www.gnu.org/software/make/manual/make.html#Remaking-Makefiles)）。为了避免这种情况，如果重新构建了标记为假的包含文件，make 将不会重新执行自己。
 
 伪目标可能有先决条件。当一个目录包含多个程序时，在一个生成文件 _./Makefile_ 中描述所有程序是最方便的。由于默认情况下重新生成的目标将是 makefile 中的第一个目标，因此通常会将其作为名为 “all” 的伪目标，并将所有单独的程序作为先决条件。例如
 
@@ -672,7 +670,7 @@ command.o: command.h
 files.o: command.h
 ```
 
-- 类似的配方适用于所有目标。自动变量 `$@` 可用于替换要重新映射到命令中的特定目标（请参见[10.5.3 Automatic Variables](https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html)）。例如：
+- 类似的配方适用于所有目标。自动变量 `$@` 可用于替换要重新映射到命令中的特定目标（请参阅[10.5.3 Automatic Variables](https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html)）。例如：
 
 ```makefile
 bigoutput littleoutput : text.g
@@ -688,7 +686,7 @@ littleoutput : text.g
     generate text.g -little > littleoutput
 ```
 
-在这里，我们假设程序 `program` 生成两种类型的输出，一种是给定 “-big” 的输出，另一种是假定给定 “-little” 的输出。有关子函数的解释，请参见 [8.2 Functions for String Substitution and Analysis](https://www.gnu.org/software/make/manual/html_node/Text-Functions.html)。
+在这里，我们假设程序 `program` 生成两种类型的输出，一种是给定 “-big” 的输出，另一种是假定给定 “-little” 的输出。有关子函数的解释，请参阅 [8.2 Functions for String Substitution and Analysis](https://www.gnu.org/software/make/manual/html_node/Text-Functions.html)。
 
 假设您想根据目标更改先决条件，就像变量 `$@` 允许您更改配方一样。在普通规则中不能对多个目标执行此操作，但可以使用静态模式规则执行此操作。
 
@@ -731,7 +729,7 @@ $(objects) : config.h
 
 它可以插入或取出，而无需更改真正指定如何制作对象文件的规则，如果您希望间歇性地添加额外的先决条件，则可以方便地使用它。
 
-另一个问题是，可以使用传递给 *make* 的命令行参数中设置的变量来指定附加的先决条件（请参见 [9.5 Overriding Variables](https://www.gnu.org/software/make/manual/html_node/Overriding.html)）。例如
+另一个问题是，可以使用传递给 *make* 的命令行参数中设置的变量来指定附加的先决条件（请参阅 [9.5 Overriding Variables](https://www.gnu.org/software/make/manual/html_node/Overriding.html)）。例如
 
 ```makefile
 extradeps=
@@ -792,7 +790,7 @@ $(filter %.elc,$(files)): %.elc: %.el
 bigoutput littleoutput : %output : text.g
         generate text.g -$* > $@
 ```
-当 `generate` 命令运行时，`$*` 将扩展到词干 ，要么是 'big'，要么是 'little'。
+当 `generate` 命令运行时，`$*` 将展开到词干 ，要么是 'big'，要么是 'little'。
 
 ### 4.12.2 静态模式规则与隐式规则
 
@@ -846,9 +844,9 @@ main.o : main.c defs.h
 
 请注意，这样的规则构成了在 makefile 中提及 main.o，因此通过隐式规则搜索，它永远不能被视为中间文件。这意味着 make 在使用该文件后永远不会删除该文件；请参阅 [10.4 Chains of Implicit Rules](https://www.gnu.org/software/make/manual/html_node/Chained-Rules.html)。
 
-对于旧的 make 程序，传统做法是通过 `make-depend` 等命令使用此编译器功能根据需要生成先决条件。该命令将创建一个包含所有自动生成的先决条件的文件 *depend*，然后 makefile 可以使用 `include` 来读取它们（请参见 [3.3 Including Other Makefiles](https://www.gnu.org/software/make/manual/html_node/Include.html)）。
+对于旧的 make 程序，传统做法是通过 `make-depend` 等命令使用此编译器功能根据需要生成先决条件。该命令将创建一个包含所有自动生成的先决条件的文件 *depend*，然后 makefile 可以使用 `include` 来读取它们（请参阅 [3.3 Including Other Makefiles](https://www.gnu.org/software/make/manual/html_node/Include.html)）。
 
-在GNU make中，重新制作(译者注，原文为remake，翻译成重新执行可能会更恰当？) makefile 的功能使这种做法过时了——你永远不需要明确地告诉 make 重新制作先决条件，因为它总是重新制作任何过期的 makefile。请参见如 [3.5 How Makefiles Are Remade](https://www.gnu.org/software/make/manual/html_node/Remaking-Makefiles.html)。
+在GNU make中，重新制作(译者注，原文为remake，翻译成重新执行可能会更恰当？) makefile 的功能使这种做法过时了——你永远不需要明确地告诉 make 重新制作先决条件，因为它总是重新制作任何过期的 makefile。请参阅如 [3.5 How Makefiles Are Remade](https://www.gnu.org/software/make/manual/html_node/Remaking-Makefiles.html)。
 
 **我们建议自动生成先决条件的做法是，每个源文件对应一个 _makefile_**。对于每个源文件 name.c，都有一个 makefile name.d，其中列出了目标文件 name.o 所依赖的文件。这样，只需要重新扫描已更改的源文件即可生成新的先决条件。
 
@@ -862,7 +860,7 @@ main.o : main.c defs.h
      rm -f $@.$$$$
 ```
 
-有关定义模式规则的信息，请参见 [10.5 Defining and Redefining Pattern Rules](https://www.gnu.org/software/make/manual/html_node/Pattern-Rules.html)。如果 `$(CC)` 命令（或任何其他命令）失败（以非零状态退出），shell的 `-e` 标志将使其立即退出。
+有关定义模式规则的信息，请参阅 [10.5 Defining and Redefining Pattern Rules](https://www.gnu.org/software/make/manual/html_node/Pattern-Rules.html)。如果 `$(CC)` 命令（或任何其他命令）失败（以非零状态退出），shell的 `-e` 标志将使其立即退出。
 
 对于 GNU C 编译器，您可能希望使用 `-MM` 标志而不是 `-M` 。这省略了系统头文件的先决条件。有关详细信息，请参阅使用 GNU CC 中的 [3.13 Options Controlling the Preprocessor](https://gcc.gnu.org/onlinedocs/gcc/Preprocessor-Options.html#Preprocessor-Options)。
 
@@ -887,31 +885,31 @@ sources = foo.c bar.c
 
 include $(sources:.c=.d)
 ```
-（此示例使用替换变量引用将源文件 “foo.c bar.c” 的列表转换为先决条件生成文件 “foo.d bar.d” 的列表。有关替换引用的完整信息，请参阅 [6.3.1 Substitution References](https://www.gnu.org/software/make/manual/html_node/Substitution-Refs.html)。）由于 “.d” 文件与其他文件一样都是 makefile ，make 将根据需要重新制作它们，而无需您做进一步的工作。请参见 [3.5 How Makefiles Are Remade](https://www.gnu.org/software/make/manual/html_node/Remaking-Makefiles.html)。
+（此示例使用替换变量引用将源文件 “foo.c bar.c” 的列表转换为先决条件生成文件 “foo.d bar.d” 的列表。有关替换引用的完整信息，请参阅 [6.3.1 Substitution References](https://www.gnu.org/software/make/manual/html_node/Substitution-Refs.html)。）由于 “.d” 文件与其他文件一样都是 makefile ，make 将根据需要重新制作它们，而无需您做进一步的工作。请参阅 [3.5 How Makefiles Are Remade](https://www.gnu.org/software/make/manual/html_node/Remaking-Makefiles.html)。
 
-请注意，“.d” 文件包含目标定义；您应该确保将 `include` 指令放在 makefile 中的第一个默认目标之后，或者冒着让随机对象文件成为默认目标的风险。请参见 [2.3 How make Processes a Makefile](https://www.gnu.org/software/make/manual/html_node/How-Make-Works.html)。
+请注意，“.d” 文件包含目标定义；您应该确保将 `include` 指令放在 makefile 中的第一个默认目标之后，或者冒着让随机对象文件成为默认目标的风险。请参阅 [2.3 How make Processes a Makefile](https://www.gnu.org/software/make/manual/html_node/How-Make-Works.html)。
 
-# 5 Writing Recipes in Rules
-规则的配方由一个或多个shell命令行组成，这些命令行将按照出现的顺序一次执行一个。通常，执行这些命令的结果是使规则的目标成为最新的。
+# 5 在规则中编写配方
+规则的配方由一个或多个 shell 命令行组成，这些命令行将按照出现的顺序每次执行一个。通常，执行这些命令的结果是使规则的目标更新为最新。
 
-用户使用许多不同的shell程序，但除非 makefile 另有规定，否则 makefile 中的配方始终由 /bin/sh 执行。请参阅 [5.3 Recipe Execution](https://www.gnu.org/software/make/manual/html_node/Execution.html)。
+用户可以使用许多不同的 shell 程序，但除非 *makefile* 另有规定，否则 *makefile* 中的配方始终由 /bin/sh 执行。请参阅 [5.3 Recipe Execution](https://www.gnu.org/software/make/manual/html_node/Execution.html)。
 
 ## 5.1 配方的语法
-Makefile有一个不同寻常的特性，即在一个文件中实际上有两种不同的语法。makefile 中大部分内容使用 make 语法（请参阅 [3 Writing Makefiles](https://www.gnu.org/software/make/manual/html_node/Makefiles.html)）。然而，配方是由 shell 解释的，因此它们是使用 shell 语法编写的。make 程序并不试图理解 shell 语法：在将配方交给 shell 之前，它只对配方的内容执行很少的特定翻译。
+*Makefile* 有一个不同寻常的特性，即在一个文件中实际上有两种不同的语法。*makefile* 中大部分内容使用 *make* 语法（请参阅 [3 Writing Makefiles](https://www.gnu.org/software/make/manual/html_node/Makefiles.html)）。然而，配方是由 shell 解释的，因此它们是使用 shell 语法编写的。*make* 程序并不试图理解 shell 语法：在将配方交给 shell 之前，它只对配方的内容执行很少的特定翻译。
 
-配方中的每一行都必须以一个制表符（或 `.RECIPEPREFIX` 变量值中的第一个字符；请参阅 [6.14 Other Special Variables](https://www.gnu.org/software/make/manual/html_node/Special-Variables.html)）开头，但第一个配方行可以用分号连接到目标-先决条件行。makefile 中以 tab 开头并出现在“规则上下文”中的任何一行（即，在一个规则启动之后，直到另一个规则或变量定义）都将被视为该规则的配方的一部分。在配方行中可能会出现空行和仅注释行，它们被忽略。
+配方中的每一行都必须以一个制表符（或 `.RECIPEPREFIX` 变量值中的第一个字符；请参阅 [6.14 Other Special Variables](https://www.gnu.org/software/make/manual/html_node/Special-Variables.html)）开头，但第一个配方行可以用分号连接到“目标-先决条件”行。*makefile* 中以 tab 开头并出现在“规则上下文”中的任何一行（即，在一个规则启动之后，直到另一个规则或变量定义）都将被视为该规则的配方的一部分。在配方行中可能会出现空行和仅注释行，它们被忽略。
 
 这些规则的一些后果包括：
 
 - 以制表符开头的空行不是空白的：这是一个空配方（请参阅 [5.9 Using Empty Recipes](https://www.gnu.org/software/make/manual/make.html#Empty-Recipes)）。
 - **配方中的注释不是注释；它将按原样传递给 shell**。shell 是否将其视为注释取决于您的 shell。
-- “规则上下文”中(即以制表符作为行上第一个字符)的变量定义，将被视为配方的一部分，而不是 make 变量定义，并传递给 shell。
+- “规则上下文”中(即以制表符作为行上第一个字符)的变量定义，将被视为配方的一部分，而不是 *make* 变量定义，并传递给 shell。
 - “规则上下文”中(即以制表符作为行上第一个字符)的条件表达式（ifdef、ifeq等，请参阅 [7.2 Syntax of Conditionals](https://www.gnu.org/software/make/manual/make.html#Conditional-Syntax)）将被视为配方的一部分，并传递给 shell。
 
 ### 5.1.1 拆分配方行
-*make* 解释配方的为数不多的方法之一是检查换行符前的反斜杠。与正常的 *makefile* 语法一样，通过在每个换行符之前放置一个反斜杠，可以将 makefile 中的单个逻辑配方行拆分为多个物理行。像这样的一系列行被视为单个配方行，将调用shell的一个实例来运行它。
+*make* 解释配方的为数不多的方法之一是检查换行符前的反斜杠。与正常的 *makefile* 语法一样，通过在每个换行符之前放置一个反斜杠，可以将 *makefile* 中的单个逻辑配方行拆分为多个物理行。像这样的一系列行被视为单个配方行，将调用 shell 的一个实例来运行它。
 
-但是，与 *makefile* 中其他地方的处理方式不同（请参见 [3.1.1 Splitting Long Lines](https://www.gnu.org/software/make/manual/make.html#Splitting-Lines)），“反斜杠/换行符对”不会从配方中删除。反斜杠和换行符都会被保留并传递给 shell。如何解释反斜杠/换行符取决于您的shell。如果反斜杠/换行后下一行的第一个字符是配方前缀字符（默认情况下为制表符；请参阅 [6.14 Other Special Variables](https://www.gnu.org/software/make/manual/make.html#Special-Variables)），则会删除该字符（并且仅删除该字符）。配方中从不添加空白。
+但是，与 *makefile* 中其他地方的处理方式不同（请参阅 [3.1.1 Splitting Long Lines](https://www.gnu.org/software/make/manual/make.html#Splitting-Lines)），“反斜杠-换行符对”不会从配方中删除。反斜杠和换行符都会被保留并传递给 shell。如何解释“反斜杠-换行符”取决于您的shell。如果反斜杠/换行后下一行的第一个字符是配方前缀字符（默认情况下为制表符；请参阅 [6.14 Other Special Variables](https://www.gnu.org/software/make/manual/make.html#Special-Variables)），则会删除该字符（并且仅删除该字符）。配方中从不添加空白。
 
 例如，此 *makefile* 中目标 “all” 的配方：
 
@@ -960,9 +958,9 @@ world
 hello     world
 ```
 
-请注意，反斜杠/换行符对是如何在用双引号（" "）引起来的字符串内删除的，而不是从用单引号（' '）引出来的字符串中删除的。这是默认 shell（/bin/sh）处理“反斜杠/换行符对”的方式。如果在 makefile 中指定了不同的 shell，则可能会对它们进行不同的处理。
+请注意，“反斜杠-换行符”对是如何在用双引号（" "）引起来的字符串内删除的，而不是从用单引号（' '）引出来的字符串中删除的。这是默认 shell（/bin/sh）处理“反斜杠-换行符对”的方式。如果在 makefile 中指定了不同的 shell，则可能会对它们进行不同的处理。
 
-有时，您希望在单引号内拆分一条长行，但不希望反斜杠/换行符出现在引用的内容中。当将脚本传递给 Perl 等语言时，通常会出现这种情况，脚本中多余的反斜杠可能会改变其含义，甚至是语法错误。一种简单的处理方法是将带引号的字符串，甚至整个命令放入 make 变量中，然后在配方中使用该变量。在这种情况下，将使用 makefile 的换行规则，并删除反斜杠/换行符。如果我们使用此方法重写上面的示例：
+有时，您希望在单引号内拆分一条长行，但不希望“反斜杠-换行符”出现在引用的内容中。当将脚本传递给 Perl 等语言时，通常会出现这种情况，脚本中多余的反斜杠可能会改变其含义，甚至是语法错误。一种简单的处理方法是将带引号的字符串，甚至整个命令放入 make 变量中，然后在配方中使用该变量。在这种情况下，将使用 makefile 的换行规则，并删除“反斜杠-换行符”。如果我们使用此方法重写上面的示例：
 
 ```makefile
 HELLO = 'hello \
@@ -978,7 +976,7 @@ hello world
 如果您愿意，您也可以使用特定于目标的变量（请参阅 [6.11 Target-specific Variable Values](https://www.gnu.org/software/make/manual/make.html#Target_002dspecific)）来获得变量和使用它的配方之间更紧密的对应关系。
 
 ### 5.1.2 在配方中使用变量
-*make* 处理配方的另一种方法是扩展其中的任何变量引用（请参阅 [6.1 Basics of Variable References](https://www.gnu.org/software/make/manual/make.html#Reference)）。这发生在 *make* 完成所有 makefile 的读取并且目标被确定为过期之后；因此，不被重建的目标的配方永远不会扩展。
+*make* 处理配方的另一种方法是展开其中的任何变量引用（请参阅 [6.1 Basics of Variable References](https://www.gnu.org/software/make/manual/make.html#Reference)）。这发生在 *make* 完成所有 makefile 的读取并且目标被确定为过期之后；因此，不被重建的目标的配方永远不会展开。
 
 配方中的变量和函数引用与 makefile 中其他地方的引用具有相同的语法和语义。他们也有相同的转义规则：如果你想在配方中出现一个美元符号，你必须将其加倍（"$$"）。对于像默认 shell 这样使用美元符号引入变量的shell，重要的是要记住要引用的变量是make变量（使用一个美元符号）还是shell变量（使用两个美元符号）。例如
 
@@ -1086,7 +1084,7 @@ foo : bar/lose
 ### 5.3.2 选择 shell
 用作 shell 的程序取自变量 `SHELL`。如果在 makefile 中未设置此变量，则使用程序 /bin/sh 作为 shell。传递给 shell 的参数取自变量 `.SHELLFLAGS`。`.SHELLFLAGS` 的默认值在正常情况下为 `-c`，在POSIX兼容模式下为 `-ec`。
 
-与大多数变量不同，变量 `SHELL` 绝不从环境中设置。这是因为环境变量 `SHELL` 用于指定您个人选择的交互式 shell 程序。个人选择会影响 makefile 的功能将是非常糟糕的。请参见 [6.10 Variables from the Environment](https://www.gnu.org/software/make/manual/html_node/Environment.html)。
+与大多数变量不同，变量 `SHELL` 绝不从环境中设置。这是因为环境变量 `SHELL` 用于指定您个人选择的交互式 shell 程序。个人选择会影响 makefile 的功能将是非常糟糕的。请参阅 [6.10 Variables from the Environment](https://www.gnu.org/software/make/manual/html_node/Environment.html)。
 
 此外，当您在 makefile 中确实设置了 `SHELL` 时，该值不会从环境中导出到 *make* 调用的配方行。相反只会导出从用户环境（如果有的话）继承的值。您可以通过显式导出 `SHELL`（请参阅 [
 5.7.2 Communicating Variables to a Sub-make](https://www.gnu.org/software/make/manual/html_node/Variables_002fRecursion.html)）来覆盖此行为，强制它在环境中传递到配方行。
@@ -1112,7 +1110,7 @@ GNU *make* 知道如何同时执行多个配方。通常，*make* 一次只执�
 
 如果“`-j`”选项后面跟着一个整数，这是同时执行的配方数；这被称为作业槽(job slots)的数量。如果“`-j`”选项后面没有类似整数的内容，则作业槽的数量没有限制。作业槽的默认数量是一个，这意味着串行执行（一次执行一件事）。
 
-处理递归 *make* 调用会引发并行执行的问题。有关此方面的详细信息，请参见 [5.7.3 Communicating Options to a Sub-make](https://www.gnu.org/software/make/manual/html_node/Options_002fRecursion.html)。
+处理递归 *make* 调用会引发并行执行的问题。有关此方面的详细信息，请参阅 [5.7.3 Communicating Options to a Sub-make](https://www.gnu.org/software/make/manual/html_node/Options_002fRecursion.html)。
 
 如果某个配方失败（被信号终止或以非零状态退出），并且该配方的错误未被忽略（请参阅 [5.5 Errors in Recipes](https://www.gnu.org/software/make/manual/html_node/Errors.html)），则用于重制相同目标的剩余配方行将不会运行。如果配方失败，并且没有给出“`-k`”或“`--keep-going`”选项（请参阅 [9.8 Summary of Options](https://www.gnu.org/software/make/manual/html_node/Options-Summary.html)），则中止执行。如果 *make* 由于任何原因（包括信号）终止，但子进程正在运行，*make* 将等待它们完成，然后才真正退出。
 
@@ -1265,7 +1263,7 @@ subsystem:
     $(MAKE) -C subdir
 ```
 
-只需复制此示例，就可以编写递归 *make* 命令，但关于它们的工作方式和原因，以及 *sub-make* 与 顶层make 的关系，还有很多事情需要了解。您可能还发现将调用递归make命令的目标声明为 `.PHONY` 也很有用（有关何时有用的更多讨论，请参阅 [4.6 Phony Targets](https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html)）。
+只需复制此示例，就可以编写递归 *make* 命令，但关于它们的工作方式和原因，以及 sub-*make* 与 顶层make 的关系，还有很多事情需要了解。您可能还发现将调用递归make命令的目标声明为 `.PHONY` 也很有用（有关何时有用的更多讨论，请参阅 [4.6 Phony Targets](https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html)）。
 
 为了方便起见，当GNU make启动时（在它处理了所有 `-c` 选项之后），它将变量 `CURDIR` 设置为当前工作目录的路径名。之后`make`再也不会触及此值：特别注意，如果您包含其他目录中的文件，则 `CURDIR` 的值不会更改。该值的优先级与在 *makefile* 中设置该值时的优先级相同（默认情况下，环境变量 `CURDIR` 不会覆盖该值）。请注意，设置此变量对 *make* 的操作没有影响（例如，它不会导致 *make* 更改其工作目录）。
 
@@ -1279,29 +1277,29 @@ subsystem:
 
 此变量的值是用于调用 *make* 的文件名。如果此文件名为 `/bin/make` ，则执行的配方为 `cd subdir&&/bin/make`。如果使用特殊版本的 *make* 来运行 顶层makefile，那么递归调用将使用相同的特殊版本来执行。
 
-作为一项特殊功能，在规则的配方中使用变量 `MAKE` 会更改`-t`（`--touch`）、`-n`（`--just-print`）或`-q`（`-question`）选项的效果。使用 `MAKE` 变量的效果与在配方行开头使用 `+` 字符的效果相同。请参见 [9.3 Instead of Executing Recipes](https://www.gnu.org/software/make/manual/html_node/Instead-of-Execution.html)。只有当 `MAKE` 变量直接出现在配方中时，才会启用此特殊功能：如果通过扩展另一个变量引用 `MAKE` 变量，则此功能不适用。在后一种情况下，您必须使用 `+` 标记才能获得这些特殊效果。
+作为一项特殊功能，在规则的配方中使用变量 `MAKE` 会更改`-t`（`--touch`）、`-n`（`--just-print`）或`-q`（`-question`）选项的效果。使用 `MAKE` 变量的效果与在配方行开头使用 `+` 字符的效果相同。请参阅 [9.3 Instead of Executing Recipes](https://www.gnu.org/software/make/manual/html_node/Instead-of-Execution.html)。只有当 `MAKE` 变量直接出现在配方中时，才会启用此特殊功能：如果通过展开另一个变量引用 `MAKE` 变量，则此功能不适用。在后一种情况下，您必须使用 `+` 标记才能获得这些特殊效果。
 
 请考虑上面示例中的命令“`make-t`”。（“`-t`”选项在不实际运行任何配方的情况下将目标标记为最新；请参阅 [9.3 Instead of Executing Recipes](https://www.gnu.org/software/make/manual/html_node/Instead-of-Execution.html)。）根据“`-t`”的常见定义，示例中的“`make -t`”命令将创建一个名为 *subsystem* 的文件，而不执行其他操作。你真正想让它做的是运行 `cd subdir && make -t`；但这需要执行配方，“`-t`”表示不执行配方。
 
-这个特殊功能使它可以随心所欲：每当规则的配方行包含变量 `MAKE` 时，标志“`-t`”、“`-n`”和“`-q`”都不适用于该行。包含 `MAKE` 的配方行正常执行，尽管存在导致大多数配方不运行的标志。通常的 `MAKEFLAGS` 机制将标志传递给 *sub-make*（请参阅 [5.7.3 Communicating Options to a Sub-make](https://www.gnu.org/software/make/manual/html_node/Options_002fRecursion.html)），因此您新建文件（译者注，原文中是 touch files， 但联想了一下 linux 中 `touch` 命令是用来新建也给文件的）或打印配方的请求会传播到子系统。
+这个特殊功能使它可以随心所欲：每当规则的配方行包含变量 `MAKE` 时，标志“`-t`”、“`-n`”和“`-q`”都不适用于该行。包含 `MAKE` 的配方行正常执行，尽管存在导致大多数配方不运行的标志。通常的 `MAKEFLAGS` 机制将标志传递给 sub-*make*（请参阅 [5.7.3 Communicating Options to a Sub-make](https://www.gnu.org/software/make/manual/html_node/Options_002fRecursion.html)），因此您新建文件（译者注，原文中是 touch files， 但联想了一下 linux 中 `touch` 命令是用来新建也给文件的）或打印配方的请求会传播到子系统。
 
-### 5.7.2 向 Sub-make 传递变量
+### 5.7.2 向 sub-*make* 传递变量
 
-顶层make 的变量值可以用显式请求通过环境传递给 sub-make。这些变量在 sub-make 中定义为默认值，但它们不会覆盖 sub-make 使用的 makefile 中定义的变量，除非使用 “`-e`” 开关（请参见 [9.8 Summary of Options](https://www.gnu.org/software/make/manual/html_node/Options-Summary.html)）。
+顶层 *make* 的变量值可以用显式请求通过环境传递给 sub-*make*。这些变量在 sub-*make* 中定义为默认值，但它们不会覆盖 sub-*make* 使用的 *makefile* 中定义的变量，除非使用 “`-e`” 开关（请参阅 [9.8 Summary of Options](https://www.gnu.org/software/make/manual/html_node/Options-Summary.html)）。
 
-要向下传递或导出变量，*make* 将变量及其值添加到运行配方每一行的环境中。相应地，sub-make 使用环境来初始化其变量值表。请参见 [6.10 Variables from the Environment](https://www.gnu.org/software/make/manual/html_node/Environment.html)。
+要向下传递或导出变量，*make* 将变量及其值添加到运行配方每一行的环境中。相应地，sub-*make* 使用环境来初始化其变量值表。请参阅 [6.10 Variables from the Environment](https://www.gnu.org/software/make/manual/html_node/Environment.html)。
 
 除非通过明确的请求，否则仅当变量最初在环境中定义，或者在命令行上设置并且其名称仅由字母、数字和下划线组成时，才使导出成为变量。
 
-*make* 变量 `SHELL` 的值不会被导出。相反，调用环境中的 `SHELL` 变量的值会传递给 sub-make。您可以使用 `export` 指令强制 *make* 为 `SHELL` 导出其值，如下所述。请参见 [5.3.2 Choosing the Shell](https://www.gnu.org/software/make/manual/html_node/Choosing-the-Shell.html)。
+*make* 变量 `SHELL` 的值不会被导出。相反，调用环境中的 `SHELL` 变量的值会传递给 sub-*make*。您可以使用 `export` 指令强制 *make* 为 `SHELL` 导出其值，如下所述。请参阅 [5.3.2 Choosing the Shell](https://www.gnu.org/software/make/manual/html_node/Choosing-the-Shell.html)。
 
 特殊变量 `MAKEFLAGS` 始终被导出（除非您取消导出它）。将 `MAKEFILES` 设置为任意值即可导出它。
 
-*make* 通过将命令行上定义的变量值放入 `MAKEFLAGS` 变量中，自动向下传递这些值。请参见 [5.7.3 Communicating Options to a Sub-make](https://www.gnu.org/software/make/manual/html_node/Options_002fRecursion.html)。
+*make* 通过将命令行上定义的变量值放入 `MAKEFLAGS` 变量中，自动向下传递这些值。请参阅 [5.7.3 Communicating Options to a Sub-make](https://www.gnu.org/software/make/manual/html_node/Options_002fRecursion.html)。
 
-如果变量是由 *make* 默认创建的，则通常不会向下传递（请参阅 [10.3 Variables Used by Implicit Rules](https://www.gnu.org/software/make/manual/html_node/Implicit-Variables.html)）。sub-make将自己定义这些。
+如果变量是由 *make* 默认创建的，则通常不会向下传递（请参阅 [10.3 Variables Used by Implicit Rules](https://www.gnu.org/software/make/manual/html_node/Implicit-Variables.html)）。sub-*make*将自己定义这些。
 
-如果要将特定变量导出到 sub-make，请使用`export`指令，如下所示：
+如果要将特定变量导出到 sub-*make*，请使用`export`指令，如下所示：
 
 ```makefile
 export variable …
@@ -1339,7 +1337,9 @@ export variable
 
 ```makefile
 export variable += value
+
 # equivalent to
+
 variable += value
 export variable
 ```
@@ -1355,28 +1355,28 @@ export
 
 这告诉 *make* 应该导出 `export` 和 `unexport` 指令中未明确提及的变量。`unexport` 指令中给定的任何变量仍然不会导出。
 
-导出指令本身引发的行为是旧版本 GNU *make* 中的默认行为。如果您的 makefile 依赖于此行为，并且希望与旧版本的 make 兼容，则可以添加特殊目标 `.EXPORT_ALL_VARIABLES` 到 makefile，而不是使用 `export` 指令。这将被旧的 *make* 忽略，而`export` 指令将导致语法错误。
+导出指令本身引发的行为是旧版本 GNU *make* 中的默认行为。如果您的 *makefile* 依赖于此行为，并且希望与旧版本的 make 兼容，则可以添加特殊目标 `.EXPORT_ALL_VARIABLES` 到 makefile，而不是使用 `export` 指令。这将被旧的 *make* 忽略，而`export` 指令将导致语法错误。
 
 默认情况下，使用`export`本身或`.export_ALL_VARIABLES`导出变量时，仅导出名称仅由字母数字和下划线组成的变量。若要导出其他变量，必须在`export`指令中特别提及它们。
 
-将变量的值添加到环境中需要对其进行扩展。如果扩展变量有副作用（如`info`或`eval`或类似函数），则每次调用命令时都会看到这些副作用。您可以通过确保这些变量的名称在默认情况下不可导出来避免这种情况。然而，更好的解决方案是根本不使用这种“默认导出”功能，而是按名称显式`export`相关变量。
+将变量的值添加到环境中需要对其进行展开。如果展开变量有副作用（如`info`或`eval`或类似函数），则每次调用命令时都会看到这些副作用。您可以通过确保这些变量的名称在默认情况下不可导出来避免这种情况。然而，更好的解决方案是根本不使用这种“默认导出”功能，而是按名称显式`export`相关变量。
 
 默认情况下，您可以使用`unexport`本身来告诉 *make* 不要导出变量。由于这是默认行为，因此只有在早些时候使用过“`export`”本身（可能在包含的 makefile 中），才需要执行此操作。您不能使用`export`和`unexport`本身来导出某些配方的变量，而不能导出其他配方的变量。最后一个单独出现的`export`或`unexport`指令决定整个 *make* 运行的行为。
 
-作为一项特殊功能，变量 `MAKEVEL` 在从一个级别传递到另一个级别时会发生更改。此变量的值是一个字符串，它是以十进制数表示的级别深度。顶层 *make* 的值为"0"；"1"代表一个 *sub-make*，"2"代表一个 *sub-sub-make*，依此类推。当 *make* 为配方设置环境时，增量就会发生。
+作为一项特殊功能，变量 `MAKEVEL` 在从一个级别传递到另一个级别时会发生更改。此变量的值是一个字符串，它是以十进制数表示的级别深度。顶层 *make* 的值为"0"；"1"代表一个 sub-*make*，"2"代表一个 *sub-sub-make*，依此类推。当 *make* 为配方设置环境时，增量就会发生。
 
 `MAKLELEVEL`的主要用途是在条件指令中测试它（请参阅 [7 Conditional Parts of Makefiles](https://www.gnu.org/software/make/manual/make.html#Conditionals)）；通过这种方式，您可以编写一个 *makefile*，如果以递归方式运行，则以一种方式运行，如果由您直接运行，则采用另一种方式。
 
 可以使用变量`MAKEFILES`使所有 sub-*make* 命令使用其他生成文件。`MAKEFILES`的值是一个以空格分隔的文件名列表。如果在外部级别的 *makefile* 中定义了该变量，则该变量将通过环境传递；然后它作为一个额外的 *makefile* 列表，供sub-*make*在通常或指定的makefile之前读取。请参阅 [3.4 The Variable MAKEFILES](https://www.gnu.org/software/make/manual/make.html#MAKEFILES-Variable)。
 
-### 5.7.3 将选项传达给Sub-make
+### 5.7.3 将选项传达给sub-*make*
 诸如“`-s`”和“`-k`”之类的标志通过变量`MAKEFLAGS`自动传递给 sub-*make*。此变量由*make*自动设置，以包含 *make* 收到的标志字母。因此，如果执行“`make-ks`”，则`MAKEFLAGS`将获得值“`ks`”。
 
 因此，每个 sub-*make* 都会在其环境中获得一个`MAKEFLAGS`值。作为响应，它从该值中获取标志，并将它们作为参数进行处理。请参阅 [9.8 Summary of Options](https://www.gnu.org/software/make/manual/make.html#Options-Summary)。这意味着，与其他环境变量不同，环境中指定的`MAKEFLAGS`优先于 *makefile* 中指定的`MAKEFLAGS`。
 
 `MAKEFLAGS`的值可能是一组空字符，表示不带参数的单字母选项，后面跟一个空格以及带参数或具有长选项名称的任何选项。如果一个选项同时具有单字母选项和长选项，则始终首选单字母选项。如果命令行上没有单字母选项，则`MAKEFLAGS`的值以空格开头。
 
-同样，命令行上定义的变量也通过`MAKEFLAGS`传递给 sub-*make*。`MAKEFLAGS`值中包含“=”的单词，将其视为变量定义，就像它们出现在命令行上一样。请参见 [9.5 Overriding Variables](https://www.gnu.org/software/make/manual/make.html#Overriding)。
+同样，命令行上定义的变量也通过`MAKEFLAGS`传递给 sub-*make*。`MAKEFLAGS`值中包含“=”的单词，将其视为变量定义，就像它们出现在命令行上一样。请参阅 [9.5 Overriding Variables](https://www.gnu.org/software/make/manual/make.html#Overriding)。
 
 未放入`MAKEFLAGS`的选项"`-C`"、"`-f`"、"`-o`"和"`-W`"；这些选项不会被传递下去。
 
@@ -1442,11 +1442,11 @@ mv y.tab.c $@
 endef
 ```
 
-这里，`run-yacc`是所定义的变量的名称；`endef`标志着定义的结束；中间的行是命令(command)。`define`指令不会预制序列中扩展变量引用和函数调用；“`$`”字符、圆括号、变量名等都将成为您定义的变量值的一部分。有关`define`指令的完整解释，请参见 [6.8 Defining Multi-Line Variables](https://www.gnu.org/software/make/manual/make.html#Multi_002dLine)。
+这里，`run-yacc`是所定义的变量的名称；`endef`标志着定义的结束；中间的行是命令(command)。`define`指令不会预制序列中展开变量引用和函数调用；“`$`”字符、圆括号、变量名等都将成为您定义的变量值的一部分。有关`define`指令的完整解释，请参阅 [6.8 Defining Multi-Line Variables](https://www.gnu.org/software/make/manual/make.html#Multi_002dLine)。
 
 本例中的第一个命令在使预制序列的规则的第一个先决条件下运行Yacc。Yacc的输出文件始终命名为 *y.tab.c*。第二个命令将输出改动至规则的目标文件名。
 
-要使用预制序列，请将变量替换为规则的配方。您可以像替换任何其他变量一样替换它（请参见 [6.1 Basics of Variable References](https://www.gnu.org/software/make/manual/make.html#Reference)）。因为`define`定义的变量是递归扩展的变量，所以您在`define`中编写的所有变量引用，此时都被扩展了。例如：
+要使用预制序列，请将变量替换为规则的配方。您可以像替换任何其他变量一样替换它（请参阅 [6.1 Basics of Variable References](https://www.gnu.org/software/make/manual/make.html#Reference)）。因为`define`定义的变量是递归展开的变量，所以您在`define`中编写的所有变量引用，此时都被展开了。例如：
 
 ```makefile
 foo.c : foo.y
@@ -1497,49 +1497,94 @@ target:
 
 空配方也可以用来避免某些目标（这些目标会作为另一个配方的副作用被创建）的错误：如果目标不存在，空配方确保 *make* 不会抱怨它不知道如何构建目标，并且 *make* 会假设目标已经过时。
 
-您可能倾向于为“不是实际文件的、其存在只是为了重新制作其先决条件”的目标定义空配方。但是，这不是最好的方法，因为如果目标文件确实存在，则可能无法正确地重新生成先决条件。有关更好的方法，请参见 [4.6 Phony Targets](https://www.gnu.org/software/make/manual/make.html#Phony-Targets)。
+您可能倾向于为“不是实际文件的、其存在只是为了重新制作其先决条件”的目标定义空配方。但是，这不是最好的方法，因为如果目标文件确实存在，则可能无法正确地重新生成先决条件。有关更好的方法，请参阅 [4.6 Phony Targets](https://www.gnu.org/software/make/manual/make.html#Phony-Targets)。
 
 
-# 6 How to Use Variables
+# 6 如何使用变量
 
-变量（在有些版本的make中也称作宏 macros）的值是文本字符串.
-变量可以表示文件名列表、传递给编译器的选项、要运行的程序、要查找源文件的目录、要写入输出的目录或您可以想象的任何其他内容。
-变量名称中不能包含 `:` `#` `=` ，虽然可以包含 字母、数字、下划线 以外的字符，但慎重。
+变量是定义在 *makefile* 中用于表示一个文本字符串（被称作变量的值）的名称。这些值由显式请求被替换为目标、先决条件、配方和 *makefile* 的其他部分。（在有些版本的 *make* 中变量也被称作宏(macros)）
 
-变量名称是区分大小写的。
+除配方、使用“`=`”的变量定义的右侧以及使用`define`指令的变量定义体除外，*makefile* 中的所有部分中的变量和函数都会在被读取时展开。变量展开到的值是展开时其最新定义的值。换句话说，变量是动态作用域的。
 
- [10.5.3 Automatic Variables](https://www.gnu.org/software/make/manual/make.html#Automatic-Variables)
+变量可以表示文件名列表、要传递给编译器的选项、要运行的程序、要查找源文件的目录、要写入输出的目录，或者您可以想象的任何其他内容。
+
+变量名可以是不包含“`:`”、“`#`”、“`=`”或空白字符的任意字符序列。但是，应仔细考虑包含字母、数字和下划线以外的字符的变量名，因为在某些 shell 中，它们无法通过环境传递给 sub-*make*（请参阅 [5.7.2 Communicating Variables to a Sub-make](https://www.gnu.org/software/make/manual/make.html#Variables_002fRecursion)）。以“`.`”和大写字母开头的变量名可能在未来版本的 *make* 中被赋予特殊含义。
+
+变量名区分大小写。名称“foo”、“FOO”和“Foo”是不同的变量。
+
+传统上在变量名中会使用大写字母，但我们推荐在 *makefile* 中为内部目的变量使用小写字母，并为控制隐式规则的参数或用户应使用命令选项覆盖的参数保留大写字母（请参阅 [9.5 Overriding Variables](https://www.gnu.org/software/make/manual/make.html#Overriding)）。
+
+一些变量的名称是单个标点符号或只有几个字符。这些是自动变量，它们有特殊的特殊用途。请参阅 [10.5.3 Automatic Variables](https://www.gnu.org/software/make/manual/make.html#Automatic-Variables)。
 ## 6.1 变量引用基础
 
-要替换变量的值，请在一个美元符号后紧跟括号或者大括号围起来的变量名称，例如`$(foo)` 或者 `${foo}`都是对变量 _foo_ 的有效引用。在文件名或者 recipe 中使用美元符号时，应使用 ‘`$$`’
+要替换变量的值，请在一个美元符号后紧跟括号或者大括号围起来的变量名称，例如`$(foo)` 或者 `${foo}`都是对变量 _foo_ 的有效引用。由于 `$` 的特殊意义，要在文件名或者配方中达到单个美元符号的效果时，应使用 ‘`$$`’。
+
+变量引用可以在任何上下文中使用：目标、先决条件、配方、大多数指令和新变量值。以下是一个常见情况的示例，其中变量包含程序中所有目标文件的名称：
+
+```makefile
+objects = program.o foo.o utils.o
+program : $(objects)
+    cc -o program $(objects)
+
+$(objects) : defs.h
+```
+
+变量引用通过严格的文本替换来工作。因此，规则
+
+```makefile
+foo = c
+prog.o : prog.$(foo)
+    $(foo)$(foo) -$(foo) prog.$(foo)
+```
+可用于编译 C 程序 *prog.c*。由于变量值之前的空格在变量赋值中被忽略，因此 *foo* 的值正是“c”。（实际上不要这样写*makefile*！）
+
+一个美元符号后面紧跟的单字符（除美元符号、左括号或左大括号外），会被视为变量名。因此，您可以使用“`$x`”引用变量`x`。然而，这种做法可能会导致混淆（例如，“`$foo`”指的是变量`f`后面跟着字符串`oo`），因此我们建议在所有变量周围使用括号或大括号，即使是单字符变量，除非省略括号会显著提高可读性。经常用于提高可读性的一个地方是自动变量（请参阅 [10.5.3 Automatic Variables](https://www.gnu.org/software/make/manual/make.html#Automatic-Variables)）。
+
 
 ## 6.2 变量的两种风格
 
-### 6.2.1 递归扩展变量赋值
+GNU *make* 中的变量可以通过不同的方式获得值，我们称之为“变量的风格”。风格的区别在于它们如何处理在 *makefile* 中分配的值，以及在以后使用和展开变量时如何管理这些值。
 
-变量的第一种风格是递归扩展变量。此种风格的变量的定义使用 `=`（参阅 [6.5 Setting Variables](https://www.gnu.org/software/make/manual/make.html#Setting)) 或者 `define` 指令 (参阅 [6.8 Defining Multi-Line Variables](https://www.gnu.org/software/make/manual/make.html#Multi_002dLine))
+### 6.2.1 递归展开变量赋值
 
-```
+变量的第一种风格是递归展开变量(*recursively expanded variable*)。此种风格的变量的定义使用 `=`（参阅 [6.5 Setting Variables](https://www.gnu.org/software/make/manual/make.html#Setting)) 或者 `define` 指令 (参阅 [6.8 Defining Multi-Line Variables](https://www.gnu.org/software/make/manual/make.html#Multi_002dLine))。您指定的值是逐字被添加的；**如果它包含对其他变量的引用，那这些引用会在此变量被替换时（在展开其他字符串的过程中）被展开**。当这种情况发生时，称为递归展开(recursive expansion)。
+
+```makefile
 foo = $(bar)
 bar = $(ugh)
 ugh = Huh?
 
 all:;echo $(foo)
 ```
-结果会显示 ‘Huh?’，其过程是`$(foo)` 扩展成 `$(bar)` 又扩展成 `$(ugh)` 最后拓展成 `Huh?`
+结果会显示 "`Huh?`"，其过程是 "`$(foo)`" 展开成 "`$(bar)`" 又展开成 "`$(ugh)`" 最后展开成 "`Huh?`"。
 
-这种风格的缺点是如果对一个变量多次使用 `=` 进行赋值，make只会取其最后一次赋值；而如果想要在本身的后面追加内容，则会引起无限循环。
+这种风格的变量是大多数其他版本的 *make* 支持的唯一一类。它有优点也有缺点。一个优点（大多数人会说）是：
 
-```make
-CFLAGS = $(CFLAGS) -O # error, it will cause an infinite loop
+```makefile
+CFLAGS = $(include_dirs) -O
+include_dirs = -Ifoo -Ibar
 ```
 
-### 6.2.2 简单扩展变量赋值
+将执行预期操作：当“CFLAGS”在配方中展开时，它将展开到“`-Ifoo -Ibar -O`”。
 
-使用 `:=` 或 `::=` 定义的变量被称为 _Simply expanded variables_ 。
-当定义变量时，简单扩展变量的值被扫描一次，扩展对其他变量和函数的任何引用。一旦扩展完成，变量的值就再也不会扩展了：当使用变量时，值被逐字复制为扩展。如果包含变量引用的值，扩展的结果将包含定义该变量时的值。
+这种变量风格的缺点是如果对一个变量多次使用 `=` 进行赋值，*make* 只会取其最后一次赋值；而如果想要在本身的后面追加内容，则会引起无限循环。
 
+```makefile
+CFLAGS = $(CFLAGS) -O
 ```
+
+它会造成无限循环（实际上 *make* 会检测到无限循环并报错）。
+
+
+另一个缺点是，每当变量展开时，定义中引用的任何函数（请参阅 [8 Functions for Transforming Text](https://www.gnu.org/software/make/manual/make.html#Functions)）都会被执行。这会使 *make* 运行速度变慢；更糟糕的是，它会导致 ` wildcard` 和 `shell` 函数产生不可预测的结果，因为您无法轻松控制它们何时被调用，甚至无法控制调用次数。
+
+### 6.2.2 *简单展开变量* 赋值
+
+为了避免递归展开变量的问题和不便，还有另一种风格：*简单展开变量*(*simply expanded variables*)。*简单展开变量*由使用 `:=` 或 `::=` 的行定义（请参阅 [6.5 Setting Variables](https://www.gnu.org/software/make/manual/make.html#Setting)）。这两种形式在 GNU *make* 中是等效的；然而，POSIX标准仅描述了 "`::=`" 形式（POSIX Issue 8 的 POSIX 标准中添加了对 "`::=`" 的支持）。
+
+*简单展开变量*的值**只会被扫描一次，并在变量定义时展开对其他变量和函数的任何引用。一旦展开完成，变量的值就再也不会展开了**：当此变量被使用时，变量值会按照之前展开的那样被逐字复制。如果变量值当中包含了变量引用，那么展开的结果中，包含的是定义该简单展开变量时的其它变量引用展开的值。。因此
+
+```makefile
 x := foo
 y := $(x) bar
 x := later
@@ -1547,12 +1592,12 @@ x := later
 
 相当于 
 
-```
-y := foo bar # 因为在定义时就会被拓展
+```makefile
+y := foo bar
 x := later
 ```
 
-本人注：在再次使用 `:=` 或 `::=` 赋值时，会覆盖掉之前的定义。
+（译者注：在再次使用 `:=` 或 `::=` 赋值时，会覆盖掉之前的定义。
 
 再举一个例子来分别 `=` 和 `:=`
 
@@ -1574,121 +1619,358 @@ name = zuozhongkai
 printf:
     @echo curname: $(curname)
 ```
-结果是 `curname: zzk`，使用 `:=` 变量的真实值会被立即拓展，即使它所引用的变量的值变更也不会随之改变了
-### 6.2.3 立即扩展变量赋值
+结果是 `curname: zzk`，使用 `:=` 变量的真实值会被立即展开，即使它所引用的变量的值变更也不会随之改变了
+）
 
-使用 `:::=` 进行赋值。生成的变量是递归的：每次使用都会重新扩展。为了避免意外结果，值立即展开后会自动被转义：展开后值中 `$` 的所有实例都会转换为 `$$` 。示例：
+这里有一个稍微复杂一些的例子，说明了“`:=`”与 `shell` 函数（请参阅 [8.14 The shell Function](https://www.gnu.org/software/make/manual/make.html#Shell-Function)）的结合使用。此示例还显示了变量 `MAKEVEL` 的使用，当它从一个级别传递到另一个级别时，该变量会发生更改。（有关 `MAKEVEL` 的信息，请参阅 [5.7.2 Communicating Variables to a Sub-make](https://www.gnu.org/software/make/manual/make.html#Variables_002fRecursion)）
 
-```make
-var = one$$two
-OUT :::= $(var)
-```
-_OUT_ 的结果为 `one$$two` 。当变量被赋值时，该值被展开，因此结果是var的值的展开 `one$two` ；然后在赋值完成之前重新转义该值，得到 `one$$two` 的最终结果。
-
-`:::=` 与 `::=` 类似，但区别在于：
-1. 当使用 `+=` 向变量添加值时，`+=` 右侧的内容是 `::=` 赋值过的变量会当即拓展。
-2. `:::=` 的变量的效率略低于简单扩展的变量，因为它们确实需要在使用时重新扩展，而不仅仅是复制。
-
-```
-var = one$$two
-OUT :::= $(var)
-OUT += $(var) # 当使用 :::= 时，+= 右侧的内容不会被当即拓展
-var = three$$four
-```
-
-_OUT_ 的结果是 `one$$two $(var)` ，当 _OUT_ 被使用时，会被拓展成 `one$two three$four` 。
-
-本人注：在再次使用 `:::=` 赋值时，会覆盖掉之前的定义。
-
-### 6.2.4 条件变量赋值
-
-`?=` ，只有在变量尚未定义时才有效。
-
-```
-FOO ?= bar
-```
-等价于
-```
-ifeq ($(origin FOO), undefined)
-  FOO = bar
+```makefile
+ifeq (0,${MAKELEVEL})
+whoami    := $(shell whoami)
+host-type := $(shell arch)
+MAKE := ${MAKE} host-type=${host-type} whoami=${whoami}
 endif
 ```
 
-注意，设置为空值的变量也算被定义了， `?=` 不会对该变量进行设置
+使用 “`:=`” 的一个优点是，典型的“下降到目录中”配方看起来会像这样：
+
+```makefile
+${subdirs}:
+    ${MAKE} -C $@ all
+```
+
+*简单展开变量*通常会使复杂的 *makefile* 程序更具可预测性，因为它们的工作方式与大多数编程语言中的变量类似。它们允许您使用变量自身的值（或由某个展开函数以某种方式处理的此变量值）重新定义变量，并更有效地使用展开函数（请参阅 [8 Functions for Transforming Text](https://www.gnu.org/software/make/manual/make.html#Functions)）。
+
+您还可以使用它们将受控的前导空格引入变量值中。在替换变量引用和函数调用之前，您输入的前导空白字符将被丢弃；这意味着您可以通过使用变量引用保护前导空格，从而在变量值中包含前导空格，如下所示：
+
+```makefile
+nullstring :=
+space := $(nullstring) # end of the line
+```
+
+这里，变量 *space* 的值恰好是一个空格。此处包含注释“# end of the line”只是为了清楚起见。由于尾部空格字符不会从变量值中去除，因此仅在行末尾的一个空格也会有同样的效果（但可读性不佳）。如果在变量值的末尾添加空白字符，那么最好在行的末尾添加这样的注释，以明确您的意图。相反，如果您不希望在变量值的末尾出现任何空白字符，则必须记住不要在某些空白之后的行末尾放置随机注释，例如：
+
+```makefile
+dir := /foo/bar    # directory to put the frobs in
+```
+
+这里，变量 `dir` 的值是'/foo/bar    '（后面有四个空格），这可能不是意图。（想象一下类似于“`$(dir)/file`”这样的定义！）
+
+### 6.2.3 立即展开变量赋值
+
+对于立即展开，与简单赋值不同的另一种被允许的赋值形式，其生成的变量是递归的：每次使用时都会再次展开。为了避免意外的结果，值被立即展开后，它将自动被转义：展开后的值中的所有 `$` 实例都将转换为 `$$`。这种类型的赋值使用“`:::=`”运算符。示例：
+
+```makefile
+var = first
+OUT :::= $(var)
+var = second
+```
+结果是，`OUT` 包含的文本是 `first` 。然而
+
+```makefile
+var = one$$two
+OUT :::= $(var)
+var = three$$four
+```
+
+结果是，`OUT` 包含的文本是 `one$$two` 。当变量被赋值时，该值被展开，因此结果是 `var` 的第一个值的展开“`one$two`”；然后在赋值完成之前重新转义该值，得到最终结果“`one$$two`”。
+
+此后，变量`OUT`被视为递归变量，因此在使用时会重新展开。
+
+这在功能上似乎与 `:=` 或 `::=` 运算符等效，但有一些区别：
+
+首先，赋值后的变量是一个正常的递归变量；当您用 `+=` 向变量添加值时，右侧的值不会立即展开。如果您希望 `+=` 运算符立即展开右侧的值，则应使用`:=` 或 `::=`赋值。
+
+其次，这些变量的效率略低于*简单展开变量*，因为它们在使用时确实需要重新展开，而不仅仅是复制。然而，由于所有变量引用都是转义的，这种扩展只需取消转义值，就不会扩展任何变量或执行任何函数。
+
+下面是另一个例子：
+
+```makefile
+var = one$$two
+OUT :::= $(var)
+OUT += $(var)
+var = three$$four
+```
+
+`OUT` 的结果是 `one$$two $(var)` ，当 `OUT` 被使用时，会被展开成 `one$two three$four` 。
+
+这种类型的赋值相当于传统的 BSD *make* 中的 "`:=`" 运算符；正如您所看到的，它的工作原理与 GNU *make* "`:=`"运算符略有不同。`:::=` 运算符在 Issue 8 中添加到 POSIX 规范中，以提供可移植性。
+
+（译者注：在再次使用 `:::=` 赋值时，会覆盖掉之前的定义。）
+
+### 6.2.4 条件变量赋值
+
+变量还有另一个赋值运算符“`?=`”。这被称为条件变量赋值运算符(*conditional variable assignment operator*)，因为它只有在变量尚未定义时才有效。此声明：
+
+```makefile
+FOO ?= bar
+```
+等价于(请参阅 [8.11 The origin Function](https://www.gnu.org/software/make/manual/make.html#Origin-Function))
+
+```makefile
+ifeq ($(origin FOO), undefined)
+    FOO = bar
+endif
+```
+
+注意，设置为空值的变量也算被定义了，`?=` 不会对该变量进行设置。
 
 ## 6.3 引用变量的高级功能
+本节介绍了一些高级功能，您可以使用这些功能以更灵活的方式引用变量。
 
 ### 6.3.1 替换引用
+*替换引用*(*substitution reference*) 使用您指定的更改去替换变量的值。它的形式为 `$(var:a=b)` 或 `${var:a=b}`，其含义是取变量 *var* 的值，将该值中的单词末尾的每个 *a* 替换为 *b*，并替换生成的字符串。
 
-`$(var:a=b)` 或 `${var:a=b}` ，其作用是获取变量 _var_ 的值，将 _var_ 的值中的单词末尾的 _a_ 替换为 _b_，并替换最终的字符串。注意，“在单词末尾”指的是要么 _a_ 之后紧接着空格，要么出现在 _var_ 值的最后。
+“在单词末尾”指的是要么 _a_ 之后紧接着空格，要么出现在 _var_ 值的最后，才能被替换。值中出现的其他 _a_ 不变。例如
 
-``` make
+``` makefile
 foo := a.o b.o l.a c.o
 bar := $(foo:.o=.c)
 ```
 
-最终结果是将 'bar' 设置为 ‘a.c b.c l.a c.c'
+最终结果是将 `bar` 设置为 `a.c b.c l.a c.c`。（请参阅 [6.5 Setting Variables](https://www.gnu.org/software/make/manual/make.html#Setting)）
+
+*替换引用*是 `patsubst` 展开函数的简写（请参阅 [8.2 Functions for String Substitution and Analysis](https://www.gnu.org/software/make/manual/make.html#Text-Functions)）：“`$(var:a=b)`”等效于“`$(patsubst %a,%b,var)`”。为了与 *make* 的其他实现兼容，我们提供了*替换引用*以及`patsubst`。
+
+另一种类型的 *替换引用* 允许您使用 `patsubst` 函数的全部功能。它的形式与上面描述的“`$(var:a=b)`”相同，只是现在 *a* 必须包含一个 “`%`” 字符。这种情况相当于“`$(patsubst a,b,$(var))`”。有关 `patsubst` 函数的描述，请参阅 [8.2 Functions for String Substitution and Analysis](https://www.gnu.org/software/make/manual/make.html#Text-Functions)。例如
+
+```makefile
+foo := a.o b.o l.a c.o
+bar := $(foo:%.o=%.c)
+```
+
+将 “`bar`” 设置为 “`a.c b.c l.a c.c`”. 
 
 ### 6.3.2 计算变量名称 
 
-略
+计算变量名是一个高级概念，在更复杂的 *makefile* 程序中非常有用。在简单的情况下，你不需要考虑它们，但它们可能非常有用。
+
+（译者注：原文地址 [6.3.2 Computed Variable Names](https://www.gnu.org/software/make/manual/make.html#Computed-Names)。暂时不想翻译这段，不仅复杂而且有点儿多，建议直接写一个规则，然后在配方里用 `echo` 打印某个变量的值就得了，别自己计算了。）
 
 ## 6.4 变量获取值的方式
 
+变量可以通过几种不同的方式获取值：
+
+- 运行 *make* 时，可以指定替代值。请参见 [9.5 Overriding Variables](https://www.gnu.org/software/make/manual/make.html#Overriding)。
+- 可以通过赋值（请参见 [6.5 Setting Variables](https://www.gnu.org/software/make/manual/make.html#Setting)）或逐字定义（请参见 [6.8 Defining Multi-Line Variables](https://www.gnu.org/software/make/manual/make.html#Multi_002dLine)）在 *makefile* 中指定值。
+- 您可以使用`let`函数（请参阅 [8.5 The let Function](https://www.gnu.org/software/make/manual/make.html#Let-Function)）或 `foreach` 函数（请参见 [8.6 The foreach Function](https://www.gnu.org/software/make/manual/make.html#Foreach-Function)）指定一个短期值(short-lived value)。
+- 环境中的变量变成了 *make* 变量。请参见 [6.10 Variables from the Environment](https://www.gnu.org/software/make/manual/make.html#Environment)。
+- 自动变量可根据规则不同而赋予新值。每一个自动变量都有单一的常规用途。请参见 [10.5.3 Automatic Variables](https://www.gnu.org/software/make/manual/make.html#Automatic-Variables)。
+- 有几个变量具有恒定的初始值。请参见 [10.3 Variables Used by Implicit Rules](https://www.gnu.org/software/make/manual/make.html#Implicit-Variables)。
+
+## 6.5 设置变量
+
+若要从 *makefile* 中设置变量，以变量名开头、后跟赋值运算符“`=`”、“`:=`”、“`::=`”或“`:::=`”之一的一行。运算符后面的任何内容和行上的任何初始空白都将成为值。例如
+
+```makefile
+objects = main.o foo.o bar.o utils.o
+```
+定义一个名为 `objects` 的变量以包含值“`main.o foo.o bar.o utils.o`”。**变量名周围和紧跟在 `=` 后面的空白字符被忽略**。
+
+用 "`=`" 定义的变量是*递归展开变量*。用"`:=`"或 "`::=`" 定义的变量是*简单展开变量*；这些定义可以包含变量引用，这些引用将在定义之前展开。用 "`:::=`" 定义的变量是*立即展开变量*。不同的赋值操作符在 [6.2 The Two Flavors of Variables](https://www.gnu.org/software/make/manual/make.html#Flavors) 中有所描述。
+
+变量名可能包含函数和变量引用，当读取该行以查找要使用的实际变量名时，这些引用会展开。
+
+除了计算机上的内存量之外，变量值的长度没有限制。为了易读性，您可以将变量值拆分为多个物理行（请参阅 [3.1.1 Splitting Long Lines](https://www.gnu.org/software/make/manual/make.html#Splitting-Lines)）。
+
+大多数您从未设置过的变量名称，都被认为具有空字符串作为值。一些变量具有不为空的内置初始值，但您可以通过常规的方式设置它们（请参阅 [10.3 Variables Used by Implicit Rules](https://www.gnu.org/software/make/manual/make.html#Implicit-Variables)）。一些特殊变量会自动为每个规则设置一个新值；这些被称为自动变量（请参阅 [10.5.3 Automatic Variables](https://www.gnu.org/software/make/manual/make.html#Automatic-Variables)）。
+
+如果您希望仅在该变量尚未被设置时才将其设置为某值，则可以使用速记运算符 "`?=`" 而不是 "`=`"。变量 "`FOO`" 的这两个设置是相同的（请参阅 [8.11 The origin Function](https://www.gnu.org/software/make/manual/make.html#Origin-Function)）：
+
+```makefile
+FOO ?= bar
+```
+和
+```makefile
+ifeq ($(origin FOO), undefined)
+FOO = bar
+endif
+```
+
+shell 赋值操作符 "`!=`" 可用于执行 shell 脚本并为其输出设置变量。此操作符首先计算右侧，然后将结果传递给 shell 执行。如果执行结果以换行符结尾，则删除该换行符；所有其他换行符都用空格替换。然后将生成的字符串放入给定名称的*递归展开变量*中。例如：
+
+```makefile
+hash != printf '\043'
+file_list != find . -name '*.c'
+```
+
+如果执行的结果可能会产生一个 `$`，并且您不打算将接下来的内容解释为 *make* 变量或函数引用，那么您必须在执行中“将每个 `$` 替换为 `$$` ”作为执行的一部分。或者，您可以将一个 *简单扩展变量* 设置为调用 `shell` 函数运行程序的结果。请参阅 [8.14 The shell Function](https://www.gnu.org/software/make/manual/make.html#Shell-Function)。例如：
+
+```makefile
+hash := $(shell printf '\043')
+var := $(shell find . -name "*.c")
+```
+
+与 `shell` 函数一样，刚刚调用的 shell 脚本的退出状态存储在 `.SHELLSTATUS ` 变量中。
 
 ## 6.6 将更多文本附加到变量
 
-通常，向已定义的变量的值添加更多文本很有用。您可以使用包含如下 `+=` 的行来执行此操作：
+通常，向已定义的变量的值添加更多文本很有用。您可以使用包含 "`+=`" 的行来执行此操作，如下：
 
-```
+```makefile
 objects += another.o
 ```
 
-这将获取变量对象的值，并将文本 “another. o” 添加到其中（如果它已经有值，则前面有一个空格）。因此：
+这将获取变量 *objects* 的值，并将文本 “*another.o*” 添加到其中（如果变量中之前已经有值，则会在新添加的内容前面加一个空格）。因此：
 
-```
+```makefile
 objects = main.o foo.o bar.o utils.o
 objects += another.o
 ```
 
-会将 'objets' 设置为 'main.o foo.o bar.o utils.o another.o'
+会将 *objets* 设置为 "*main.o foo.o bar.o utils.o another.o*"
+
+使用 "`+=`" 类似于：
+
+```makefile
+objects = main.o foo.o bar.o utils.o
+objects := $(objects) another.o
+```
+
+但是当您使用更复杂的值时，不同的方式变得很重要。
+
+当之前未定义相关变量时，"`+=`" 的行为就像正常的  "`=`"：它定义了一个 *递归展开变量*。然而，当存在以前的定义时，"`+=`" 的确切作用取决于您最初定义的变量的风格。有关变量的两种风格的解释，请参阅 [6.2 The Two Flavors of Variables](https://www.gnu.org/software/make/manual/make.html#Flavors)。
+
+当你用 "`+=`" 向变量的值添加内容时, *make* 表现的基本上就像你在变量的初始定义中包含了额外的文本一样。如果你首先用 "`:=`" 或者 "`::=`" 定义它, 使它成为一个*简单展开变量*, "`+=`" 添加到这个简单展开的定义中，并在将新文本附加到旧值之前扩展它，就像"`:=`" 一样（请参阅 [6.5 Setting Variables](https://www.gnu.org/software/make/manual/make.html#Setting)，以获得 "`:=`" 或者 "`::=`" 的完整解释). 事实上，
+
+```makefile
+variable := value
+variable += more
+```
+
+完全等同于：
+
+```makefile
+variable := value
+variable := $(variable) more
+```
+
+大致相当于：
+
+```makefile
+temp = value
+variable = $(temp) more
+```
+
+当然，它从来没有定义一个名为 *temp* 的变量。当变量的旧值包含变量引用时，这一点就很重要了。举个常见的例子：
+
+```makefile
+CFLAGS = $(includes) -O
+…
+CFLAGS += -pg # enable profiling
+```
+
+第一行定义了 `CFLAGS` 变量，并引用了另一个变量 `include`。（`CFLAGS` 用于 C 编译规则使用；请参阅 [10.2 Catalogue of Built-In Rules](https://www.gnu.org/software/make/manual/make.html#Catalogue-of-Rules)。）使用 "`=`" 定义使 `CFLAGS` 成为*递归展开变量*，这意味着当处理 `CFLAGS` 的定义时，"`$(includes) -O`" 不会被扩展。因此，目前还不需要定义 `include` 来使其值生效，它只需要在引用 `CFLAGS` 之前定义。如果我们试图不使用 "`+=`" 向 `CFLAGS` 的值添加内容, 我们可能会这样做：
+
+```makefile
+CFLAGS := $(CFLAGS) -pg # enable profiling
+```
+
+这很接近，但不是我们想要的。使用 "`:=`" 将 `CFLAGS` 重新定义为 *简单展开变量*；这意味着 *make* 在设置变量之前展开文本 "`$(CFLAGS) -pg`"。如果尚未定义 `includes`，我们得到 "` -O -pg`"，且之后对 `includes` 的定义将不起作用。相反，通过使用 "`+=`"，我们将 `CFLAGS` 设置为非扩展的值 "`$(includes) -O -pg`"。因此，我们保留了对 `includes` 的引用，因此如果该 `includes` 变量在稍后定义，像 "`$(CFLAGS)`" 这样的引用仍然使用它的值。
 
 ## 6.7 `override` 指令
 
-如果变量已使用命令参数设置（请参阅 [9.5 Overriding Variables](https://www.gnu.org/software/make/manual/make.html#Overriding)），则makefile中的普通赋值将被忽略。如果您想在makefile中设置变量，即使它是使用命令参数设置的，您可以使用覆盖指令
+如果变量已使用命令参数设置（请参阅 [9.5 Overriding Variables](https://www.gnu.org/software/make/manual/make.html#Overriding)），则 *makefile* 中的普通赋值将被忽略。尽管一个变量已经是使用命令参数设置的，您还是想在 *makefile* 中设置它，那么您可以使用 `override` 指令
 
-```
+```makefile
 override variable = value
+```
+或
+```makefile
 override variable := value
-override variable += more text # To append more text to a variable defined on the command line
 ```
 
-标有覆盖标志的变量赋值比除另一个覆盖外的所有其它赋值具有更高的优先级。未标记覆盖的后续赋值或附加到此变量将被忽略。
-
-override 指令的发明是为了让您可以更改和添加用户使用命令参数指定的值。例如，假设您在运行C编译器时总是想要“-g”选项，但您希望像往常一样允许用户使用命令参数指定其他开关。则可以使用 override 指令：
+要将更多文本附加到在命令行上定义的变量（请参阅 [6.6 Appending More Text to Variables](https://www.gnu.org/software/make/manual/make.html#Appending)），请使用：
+```makefile
+override variable += more text
 ```
+
+标有 `override` 标志的变量赋值比其它赋值具有更高的优先级（除非也是 `override` 赋值）。未标记 `override` 的后续赋值或向此变量的附加将被忽略。
+
+`override` 指令不是为了激化 *makefile* 和命令参数之间的战争中而发明的，而是为了让您可以更改和添加用户使用命令参数指定的值。
+
+例如，假设您在运行C编译器时总是想要 "`-g`" 选项，但您希望像往常一样允许用户使用命令参数指定其他开关。则可以使用 `override` 指令：
+
+```makefile
 override CFLAGS += -g
 ```
 
-您还可以将 override 指令与 define 指令一起使用。
+您还可以将 `override` 指令与 `define` 指令一起使用。这是按照您的预期完成的：
 
-``` make
+``` makefile
 override define foo =
 bar
 endef
 ```
 
+请参阅 [6.8 Defining Multi-Line Variables](https://www.gnu.org/software/make/manual/make.html#Multi_002dLine)
+
 ## 6.8 定义多行变量
-略
+另一种设置变量值的方法是使用 `define` 指令。该指令有一种不寻常的语法，允许在值中包含换行符，这便于定义命令的预制序列（请参阅 [5.8 Defining Canned Recipes](https://www.gnu.org/software/make/manual/make.html#Canned-Recipes)），以及与 `eval` 一起使用的 *makefile* 语法部分（请参阅 [8.10 The eval Function](https://www.gnu.org/software/make/manual/make.html#Eval-Function)）。
+
+在同一行中，`define` 指令后面跟着被定义变量的名称和一个（可选的）赋值操作符，然后就没有更多内容了。给定变量的值出现在后续行中。值的末尾由仅包含单词 `endf` 的行标记。
+
+除了这种语法上的差异，`define` 指令就像任何其他变量定义一样工作。变量名可能包含函数和变量引用，当读取指令以查找要使用的实际变量名时，它们会被展开。
+
+`endf`之前的最后一个换行符不包含在值中；如果您希望您的值包含尾随换行符，则必须包含一个空行。例如，为了定义包含换行符的变量，您必须使用两个空行，而不是一个：
+
+```makefile
+define newline
+
+
+endef
+```
+
+如果您愿意，您可以省略变量赋值操作符。如果省略，*make* 会假定它是 "`=`" 并创建一个*递归展开*变量（请参阅 [6.2 The Two Flavors of Variables](https://www.gnu.org/software/make/manual/make.html#Flavors)）。使用 "`+=`" 运算符时，该值会像任何其他附加操作一样附加到前一个值：用一个空格分隔旧值和新值。
+
+您可以嵌套 `define` 指令：*make* 将跟踪嵌套指令，如果它们没有全部正确地用 `endf` 关闭，则会报告错误。请注意，以配方前缀字符开头的行被视为配方的一部分，因此出现在该行的任何 `define` 或 `endf` 字符串都不会被视为 *make* 指令。
+
+```makefile
+define two-lines
+echo foo
+echo $(bar)
+endef
+```
+
+当在配方中使用时，前面的示例在功能上等价于：
+
+```makefile
+two-lines = echo foo; echo $(bar)
+```
+
+因为用分号分隔的两个命令的行为很像两个单独的 shell 命令。但是，请注意，使用两个单独行意味着 *make* 将调用 shell 两次，为每一行运行一个独立的子shell。请参阅 [5.3 Recipe Execution](https://www.gnu.org/software/make/manual/make.html#Execution)。
+
+如果您希望使用 `define` 创建的变量定义优先于命令行变量定义，您可以将 `overrid` 指令与 `define` 一起使用：
+
+```makefile
+override define two-lines =
+foo
+$(bar)
+endef
+```
+
+请参阅 [6.7 The override Directive](https://www.gnu.org/software/make/manual/make.html#Override-Directive)
 
 ## 6.9 取消变量定义
 
-在 flavor 函数（[8.12 The `flavor` Function](https://www.gnu.org/software/make/manual/make.html#Flavor-Function)）和 origin 函数（[8.11 The `origin` Function](https://www.gnu.org/software/make/manual/make.html#Origin-Function)）中，一个值被设置为空或是没有被设置，是有区别的。使用 `undefine` 指令可以使变量没有被设置过。
+如果您想清除一个变量，将其值设置为空通常就足够了。无论变量是否被设置，展开这样的变量将产生相同的结果（空字符串）。但是，如果您使用的是 `flavor` 函数（[8.12 The flavor Function](https://www.gnu.org/software/make/manual/make.html#Flavor-Function)）和 `origin` 函数（[8.11 The origin Function](https://www.gnu.org/software/make/manual/make.html#Origin-Function)）中，一个值被设置为空或是没有被设置，是有区别的。在这种情况下，您可能希望使用 `undefine` 指令使变量看起来好像从未设置过一样。例如：
 
-``` make
+```makefile
+foo := foo
+bar = bar
+
 undefine foo
+undefine bar
 
-# to undefine a command-line variable definition
+$(info $(origin foo))
+$(info $(flavor bar))
+```
+
+此示例中，两个变量的打印都是“未定义(undefined)”。
+
+如果要取消定义命令行变量定义，可以将 `overrid` 指令与 `undefined` 一起使用，类似于对变量定义的操作方式：
+
+```makefile
 override undefine CFLAGS
 ```
 
@@ -1701,38 +1983,61 @@ override undefine CFLAGS
 
 **不建议使用环境中的其他变量**。*makefile* 的功能依赖于在其控制范围之外设置的环境变量是不明智的，因为这会导致不同的用户从同一个 *makefile* 中获得不同的结果。这违背了大多数 *makefile* 的全部目的。
 
-变量 `SHELL` 尤其可能出现这种问题，它通常存在于环境中，用于指定用户对交互式 *shell* 的选择。这种选择会影响 “*make*”，这是非常不可取的；因此，“*make*” 以一种特殊的方式处理 “`SHELL`” 环境变量；请参见 [5.3.2 Choosing the Shell ](https://www.gnu.org/software/make/manual/html_node/Choosing-the-Shell.html)。
+变量 `SHELL` 尤其可能出现这种问题，它通常存在于环境中，用于指定用户对交互式 *shell* 的选择。这种选择会影响 “*make*”，这是非常不可取的；因此，“*make*” 以一种特殊的方式处理 “`SHELL`” 环境变量；请参阅 [5.3.2 Choosing the Shell ](https://www.gnu.org/software/make/manual/html_node/Choosing-the-Shell.html)。
 
 
 ## 6.11 特定于目标的变量值
 
-```
+*make* 中的变量值通常是全局的；也就是说，无论在哪里评估它们，它们都是相同的（当然，除非它们被重置）。例外情况是用 `let` 函数（参见 [The let Function](https://www.gnu.org/software/make/manual/make.html#Let-Function)）或foreach函数（参见 [The foreach Function](https://www.gnu.org/software/make/manual/make.html#Foreach-Function)）定义的变量，以及自动变量（参见 [Automatic Variables](https://www.gnu.org/software/make/manual/make.html#Automatic-Variables)）。
+
+另一个例外是 *特定于目标的变量值*(*target-specific variable values*)。此功能允许您根据 *make* 当前正在构建的目标为同一变量定义不同的值。与自动变量一样，这些值仅在目标配方的上下文中可用（以及在其他特定于目标的赋值中）。
+
+设置一个特定于目标的变量值，如下所示：
+
+```makefile
 target … : variable-assignment
 ```
 
-可以使用`export`, `unexport`, `override`, 或 `private`。variable-assignment 可以是任何有效的赋值形式；递归 (‘=’), 简单 (‘:=’ 或 ‘::=’), 立即 (‘::=’), 附加 (‘+=’), 或条件 (‘? =’)。
+可以使用特殊关键字 `export`, `unexport`, `override`, 或 `private` 中的一个或者所有作为特定于目标的变量赋值的前缀。这些仅将其正常行为应用于变量的此实例。
 
-特定于目标的变量与任何其他makefile变量具有相同的优先级。命令行上提供的变量（如果“-e”选项有效，则在环境中）将优先。
+多个目标值分别为目标列表的每个成员创建一个特定于目标的变量值。
 
-目标特定变量还有一个特殊特性：当您定义目标特定变量时，该变量值对该目标的所有先决条件、以及先决条件的所有先决条件也有效（除非这些先决条件用自己的目标特定变量值覆盖该变量）。
+变量赋值可以是任何有效的赋值形式；递归 ("`=`"), 简单 ("`:=`" 或 "`::=`"), 立即 ("`:::=`"), 附加 ("`+=`"), 或条件 ("`?=`")。变量赋值中出现的所有变量都在目标的上下文中进行评估：因此，任何先前定义的特定于目标的变量值都将生效。请注意，这个变量实际上不同于任何“全局”值：两个变量不必具有相同的风格（递归与简单）。
 
-请注意，给定的先决条件最多只能在每次调用make时构建一次。如果同一个文件是多个目标的先决条件，并且每个目标对同一目标特定变量都有不同的值，那么要构建的第一个目标将导致该先决条件被构建，先决条件将从第一个目标继承目标特定值。它将忽略任何其他目标的目标特定值。
+特定于目标的变量与任何其他 *makefile* 变量具有相同的优先级。命令行上提供的变量（如果 "`-e`" 选项有效，则在环境中提供）将优先。指定 `override` 指令将允许首选特定于目标的变量值。
+
+特定于目标的变量还有一个特殊特性：当您定义特定于目标的变量时，该变量值也对该目标的所有先决条件、以及先决条件的所有先决条件等有效（除非这些先决条件用它们自己的特定于目标的变量值覆盖该变量）。例如，这样的语句：
+
+```makefile
+prog : CFLAGS = -g
+prog : prog.o foo.o bar.o
+```
+
+将在 *prog* 的配方中将 `CFLAGS` 设置为 "`-g`"，但在创建 *prog.o*、*foo.o* 和 *bar.o* 的配方、以及任何创建其先决条件的配方中也将 `CFLAGS` 设置为 "`-g`"。
+
+请注意，给定的先决条件最多只能在每次调用 *make* 时构建一次。如果同一个文件是多个目标的先决条件，并且每个目标对同一目标特定变量都有不同的值，那么**构建的第一个目标将导致该先决条件被构建，先决条件将从第一个目标继承目标特定值。它将忽略任何其他目标的目标特定值。**
+
 ## 6.12 特定于模式的变量值
+除了特定于目标的变量值（请参阅 [6.11 Target-specific Variable Values](https://www.gnu.org/software/make/manual/make.html#Target_002dspecific)）之外，GNU *make* 还支持特定于模式(pattern-specific)的变量值。在这种形式中，变量是为与指定模式匹配的所有目标定义的。
 
-``` make
+设置一个特定于模式的变量值，如下所示：
+
+``` makefile
 pattern … : variable-assignment
 ```
 
-在其中，pattern 是 %-pattern。
-除非指定了 override，否则任何命令行变量设置都将优先。
+其中 `pattern` 是 `%-pattern`。与特定于目标的变量值一样，多个模式值分别为每个模式创建特定于模式的变量值。变量赋值可以是任何有效的赋值形式。除非指定了 `override`，否则任何命令行变量设置都将优先。
 
-```
+例如：
+
+```makefile
 %.o : CFLAGS = -O
 ```
-将会针对与模式 `%.o` 匹配的目标进行对`CFLAGS`赋值 `-O`
+将会针对与模式 `%.o` 匹配的目标进行对`CFLAGS`赋值 "`-O`"。
 
-如果目标匹配多个模式，则首先解释具有较长词干的匹配模式特定变量。这会导致更具体的变量优先于更通用的变量。示例：
-```
+如果目标匹配多个模式，则匹配了更长词干的特定模式匹配会被首先解释。这会导致更具体的变量优先于更通用的变量。示例：
+
+```makefile
 %.o: %.c
         $(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
 
@@ -1741,9 +2046,202 @@ lib/%.o: CFLAGS := -fPIC -g
 
 all: foo.o lib/bar.o
 ```
-在这个例子中，CFLAGS变量的第一个定义将用于更新lib/bar. o，即使第二个定义也适用于这个目标。导致相同词干长度的模式特定变量则按照它们在makefile中定义的顺序被考虑。
 
-特定于模式的变量 会在 为该目标所显式定义的特定于目标的变量 之后被搜索，在 为父目标定义的特定于目标的变量 之前被搜索。
+在这个例子中，`CFLAGS` 变量的第一个定义将用于更新 `lib/bar.o`，即使第二个定义也适用于这个目标。相同词干长度匹配的特定模式变量则按照它们在 *makefile* 中定义的顺序被考虑。
+
+“特定于模式的变量” 会在 “为该目标所显式定义的特定于目标的变量” 之后、在 “为父目标定义的特定于目标的变量” 之前被搜索。
+
+## 6.13 抑制继承
+
+如前几节所述，*make* 变量会被先决条件继承。此功能允许您根据导致重建的目标修改先决条件的行为。例如，您可以在 *debug* 目标上设置特定于目标的变量，然后执行 "`make debug`" 将导致该变量被 *debug* 的所有先决条件继承，而仅运行 "`make all`"（举例）将没有该赋值。
+
+但是，有时您可能不希望一个变量被继承。对于这些情况，*make* 提供了 `private` 修饰符。尽管这个修饰符可以与任何变量赋值一起使用，但它对特定于目标或模式的变量最有意义。任何标记为 `private` 的变量都将对其本地目标可见，但不会被该目标的先决条件继承。标记为 `private` 的全局变量将在全局范围内可见，但不会被任何目标继承，因此在任何配方中都不可见。
+
+例如，考虑以下 makefile
+```makefile
+EXTRA_CFLAGS =
+
+prog: private EXTRA_CFLAGS = -L/usr/local/lib
+prog: a.o b.o
+```
+
+由于 `private` 修饰符，*a.o* 和 *b.o* 不会从目标 *prog* 继承 `EXTRA_CFLAGS` 变量赋值。
+
+## 6.14 其它特殊变量
+
+GNU *make* 支持一些具有特殊属性的变量。
+
+- `MAKEFILE_LIST`
+
+包含由 *make* 解析的每个 *makefile* 的名称，按照顺序进行解析。该名称在 *make* 开始解析 *makefile* 之前附加。因此，如果 *makefile* 做的第一件事是检查这个变量中的最后一个单词，它将是当前 *makefile* 的名称。但是，一旦当前 *makefile* 使用了 `include`，最后一个单词将是刚刚包含的 *makefile*。
+如果名为 *Makefile* 的 *makefile* 具有以下内容：
+
+```makefile
+name1 := $(lastword $(MAKEFILE_LIST))
+
+include inc.mk
+
+name2 := $(lastword $(MAKEFILE_LIST))
+
+all:
+    @echo name1 = $(name1)
+    @echo name2 = $(name2)
+```
+
+然后你会期望看到这个输出：
+
+```sh
+name1 = Makefile
+name2 = inc.mk
+```
+
+- `.DEFAULT_GOAL`
+
+如果在命令行上未指定目标，则设置要使用的默认目标（请参阅 [9.2 Arguments to Specify the Goals](https://www.gnu.org/software/make/manual/make.html#Goals)）。`.DEFAULT_GOAL` 变量允许您发现当前默认目标、通过清除其值重新启动默认目的(goal)选择算法或显式设置默认目标。以下示例说明了这些情况：
+
+```makefile
+# Query the default goal.
+ifeq ($(.DEFAULT_GOAL),)
+  $(warning no default goal is set)
+endif
+
+.PHONY: foo
+foo: ; @echo $@
+
+$(warning default goal is $(.DEFAULT_GOAL))
+
+# Reset the default goal.
+.DEFAULT_GOAL :=
+
+.PHONY: bar
+bar: ; @echo $@
+
+$(warning default goal is $(.DEFAULT_GOAL))
+
+# Set our own.
+.DEFAULT_GOAL := foo
+```
+
+这个 *makefile* 打印：
+
+```sh
+no default goal is set
+default goal is foo
+default goal is bar
+foo
+```
+
+请注意，为 `.DEFAULT_GOAL` 分配多个目标名称是无效的，将导致错误。
+
+- `MAKE_RESTARTS`
+
+仅当 *make* 实例重新启动时才设置此变量（请参阅 [3.5 How Makefiles Are Remade](https://www.gnu.org/software/make/manual/make.html#Remaking-Makefiles)）：它将包含此实例重新启动的次数。请注意，这与递归（由 `MAKELEVEL` 变量计算）不同。您不应该设置、修改或导出此变量。
+
+- `MAKE_TERMOUT`<br>`MAKE_TERMERR`
+
+当 *make* 启动时，它将检查 *stdout* 和 *stderr* 是否会在终端上显示它们的输出。如果是这样，它将分别设置 `MAKE_TERMOUT` 和 `MAKE_TERMERR` 到终端设备的名称（如果无法确定，则为true）。如果设置，这些变量将被标记为导出。这些变量将不会被 *make* 更改，如果已经设置，也不会被修改。
+
+可以使用这些值（特别是与输出同步（参见 [5.4.2 Output During Parallel Execution](https://www.gnu.org/software/make/manual/make.html#Parallel-Output)）结合使用）来确定 *make* 本身是否正在向终端写入；例如，可以测试它们以决定是否强制配方命令生成彩色输出。
+
+如果您调用 sub-*make* 并重定向其 *stdou*t 或 *stderr*，如果您的 *makefile* 依赖它们，您也有责任重置或取消导出这些变量。
+
+- `.RECIPEPREFIX`
+
+此变量值的第一个字符用作 *make* 假设正在引入配方行的字符。如果变量为空（默认情况下），则该字符是标准制表符。例如，这是一个有效的 *makefile*：
+
+```makefile
+.RECIPEPREFIX = >
+all:
+> @echo Hello, world
+```
+
+`.RECIPEPREFIX` 的值可以被多次更改；一旦设置，它对所有解析的规则保持有效，直到它被再次修改。
+
+- `.VARIABLES`
+
+展开后是到目前为止定义的所有全局变量的名称列表。这包括具有空值的变量以及内置变量（请参阅 [10.3 Variables Used by Implicit Rules](https://www.gnu.org/software/make/manual/make.html#Implicit-Variables)），但不包括仅在特定目标上下文中定义的任何变量。请注意，您分配给此变量的任何值都将被忽略；它将始终返回其特殊值。
+
+- `.FEATURES`
+
+展开到此版本 *make* 支持的特殊功能列表。可能的值包括但不限于：
+    "archives"
+
+    "check-symlink"
+
+    "else-if"
+
+    "extra-prereqs"
+
+    "grouped-target"
+
+    "guile"
+
+    "jobserver"
+
+    "jobserver-fifo"
+
+    "load"
+
+    "notintermediate"
+
+    "oneshell"
+
+    "order-only"
+
+    "output-sync"
+
+    "second-expansion"
+
+    "shell-export"
+
+    "shortest-stem"
+
+    "target-specific"
+
+    "undefine"
+
+- `.INCLUDE_DIRS`
+
+展开后是 *make* 搜索包含 *makefile* 的目录列表（请参阅 [3.3 Including Other Makefiles](https://www.gnu.org/software/make/manual/make.html#Include)）。请注意，修改此变量的值不会更改要搜索的目录列表。
+
+- `.EXTRA_PREREQS`
+
+这个变量中的每个单词都是一个新的、被添加到预定的目标中的先决条件。这些先决条件与普通先决条件的不同之处在于它们不会出现在任何自动变量中（请参阅 [10.5.3 Automatic Variables](https://www.gnu.org/software/make/manual/make.html#Automatic-Variables)）。这允许了定义先决条件而不影响配方的不影响配方的情况。
+
+考虑一个用于链接程序的规则：
+
+```makefile
+myprog: myprog.o file1.o file2.o
+    $(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+```
+
+现在假设您想增强此 *makefile* 以确保对编译器的更新会导致程序重新链接。您可以将编译器添加为先决条件，但您必须确保它不会作为参数传递给链接命令。您需要这样的东西：
+
+```makefile
+myprog: myprog.o file1.o file2.o $(CC)
+    $(CC) $(CFLAGS) $(LDFLAGS) -o $@ \
+        $(filter-out $(CC),$^) $(LDLIBS)
+```
+
+然后考虑到有多个额外的先决条件：它们都必须被过滤掉。使用 `.EXTRA_PREREQS` 和特定于目标的变量提供了一个更简单的解决方案：
+
+```makefile
+myprog: myprog.o file1.o file2.o
+    $(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+myprog: .EXTRA_PREREQS = $(CC)
+```
+
+如果您想向无法轻松修改的 *makefile* 添加先决条件，此功能也很有用：您可以创建一个新文件，例如 *extra.mk*：
+
+```makefile
+myprog: .EXTRA_PREREQS = $(CC)
+```
+
+然后调用 `make -f extra.mk -f Makefile`。
+
+全局设置 `.EXTRA_PREREQS` 将导致这些先决条件被添加到所有目标（这些目标本身没有用特定于目标的值覆盖它）。注意 *make* 足够聪明，不会添加 `.EXTRA_PREREQS` 中列出的先决条件作为自身的先决条件。
+
+
 # 7 *Makefile* 的条件句部分
 根据变量的值，条件(conditional)指令会导致 *makefile* 的一部分被遵守或忽略。条件可以将一个变量的值与另一个变量进行比较，或者将变量的值与常量字符串做比较。条件控制 *make* 在 *makefile* 中实际“看到”的内容，因此在执行时不能用于控制配方。
 
@@ -1851,7 +2349,7 @@ ifeq ($(strip $(foo)),)
 text-if-empty
 endif
 ```
-即使`$(foo)`的扩展包含空白字符，也将评估`text-if-empty`（译者注，原文是 "will evaluate text-if-empty"，直译是“评估”，但我觉得原文想表达的是会执行`text-if-empty`）。
+即使`$(foo)`的展开包含空白字符，也将评估`text-if-empty`（译者注，原文是 "will evaluate text-if-empty"，直译是“评估”，但我觉得原文想表达的是会执行`text-if-empty`）。
 
 ```makefile
 ifneq (arg1, arg2)
@@ -1866,7 +2364,7 @@ ifneq 'arg1' "arg2"
 ifdef variable-name
 ```
 
-`ifdef` 将变量名称作为其参数，而不是对变量的引用。如果该变量的值具有非空值，则`text-if-true`有效；否则，`text-if-false`（如果有的话）有效。从未定义过的变量的值为空。文本`variable-name`是展开的，因此它可以是一个可以扩展到变量名称的变量或函数。例如
+`ifdef` 将变量名称作为其参数，而不是对变量的引用。如果该变量的值具有非空值，则`text-if-true`有效；否则，`text-if-false`（如果有的话）有效。从未定义过的变量的值为空。文本`variable-name`是展开的，因此它可以是一个可以展开到变量名称的变量或函数。例如
 
 ```makefile
 bar = true
@@ -1876,7 +2374,7 @@ frobozz = yes
 endif
 ```
 
-变量引用 `$(foo)` 被扩展，扩展的结果是`bar`，它被认为是变量的名称。变量`bar`不会被展开，但会检查其值以确定其是否为非空。
+变量引用 `$(foo)` 被展开，展开的结果是`bar`，它被认为是变量的名称。变量`bar`不会被展开，但会检查其值以确定其是否为非空。
 
 请注意，`ifdef` 只测试变量是否有值。它不会展开变量以查看该值是否为非空(译者注，注意：`variable-name` 仅会被展开一次，即使展开后是变量或是函数，也不会再被展开)。因此，使用`ifdef`的测试对于除 `foo =` 以外的所有定义都返回 true。要测试空值，请使用 `ifeq ($(foo),)`，例如
 
@@ -1907,7 +2405,7 @@ endif
 ifndef variable-name
 ```
 
-如果变量 `variable-name` 的值为空，则`text-if-true`有效；否则，`text-if-false`（如果有的话）有效。`variable-name` 的扩展和测试规则与`ifdef`指令相同。
+如果变量 `variable-name` 的值为空，则`text-if-true`有效；否则，`text-if-false`（如果有的话）有效。`variable-name` 的展开和测试规则与`ifdef`指令相同。
 
 条件指令行的开头允许并忽略额外的空格，但不允许使用制表符。如果该行以制表符开头，它将被视为规则配方(recipe for a rule)的一部分。除此之外，除了在指令名称或参数中之外，可以在任何位置插入额外的空格或制表符，且不会产生任何效果。以“#”开头的注释可以会出现在行的末尾。
 
@@ -1938,7 +2436,7 @@ else
 endif
 ```
 
-前缀“`+`”将这些配方行标记为“递归”，这样即使使用了“`-t`”标志，它们也会被执行。请参见 [5.7 Recursive Use of make](https://www.gnu.org/software/make/manual/make.html#Recursion)。
+前缀“`+`”将这些配方行标记为“递归”，这样即使使用了“`-t`”标志，它们也会被执行。请参阅 [5.7 Recursive Use of make](https://www.gnu.org/software/make/manual/make.html#Recursion)。
 
 
 # 8 Functions for Transforming Text
@@ -1972,7 +2470,7 @@ foo:= a b c
 bar:= $(subst $(space),$(comma),$(foo))
 ```
 结果是 `bar` 变成了 `a,b,c`
-## 8.2 Functions for String Substitution and Analysis
+## 8.2 字符串替换和分析的函数
 
 - `$(subst from,to,text)`
 	将 `text` 中出现的每一个 `from` 替换成 `to`
@@ -2058,9 +2556,9 @@ $(subst :, ,$(VPATH))
 override CFLAGS += $(patsubst %,-I%,$(subst :, ,$(VPATH)))
 ```
 效果是将文本 `-Isrc -I../headers` 附加到先前给定的CFLAGS值。使用覆盖指令，即使使用命令参数指定了CFLAGS的先前值，也会分配新值。
-## 8.3 Functions for File Names
+## 8.3 用于文件名的函数
 
-一些内置的扩展功能专门涉及拆分文件名或文件名列表。以下每个函数都对文件名执行特定的转换。函数的参数被视为一系列文件名，由空格分隔。（前导和尾随空格被忽略。）
+一些内置的展开功能专门涉及拆分文件名或文件名列表。以下每个函数都对文件名执行特定的转换。函数的参数被视为一系列文件名，由空格分隔。（前导和尾随空格被忽略。）
 
 - $(dir names...)
 - $(notdir names...)
@@ -2084,6 +2582,10 @@ override CFLAGS += $(patsubst %,-I%,$(subst :, ,$(VPATH)))
 - $(realpath names...)
 - $(abspath names...)
 
+## 8.4 条件函数
+
+## 8.5 `let` 函数
+
 ## 8.6 `foreach` 函数
 
 语法
@@ -2095,7 +2597,7 @@ $(foreach var,list,text)
 
 首先将前两个参数 *var* 和 *list* 在做其它任何事情之前展开；然后将 *list* 中以空格分隔的字符串依次赋值给 *var* 临时变量，再执行 *text* 表达式；重复直到 *list* 的最后一个字符串。
 
-根据上述描述可推测 *text* 需包含 *var* 变量的引用。结果是 *text* 被扩展的次数等于 *list* 中以空格分隔的单词的个数。*text* 的多个扩展被连接起来，它们之间有空格，作为 `foreach` 的结果。
+根据上述描述可推测 *text* 需包含 *var* 变量的引用。结果是 *text* 被展开的次数等于 *list* 中以空格分隔的单词的个数。*text* 的多个展开被连接起来，它们之间有空格，作为 `foreach` 的结果。
 
 ```
 dirs := a b c d
@@ -2108,9 +2610,32 @@ files := $(foreach dir,$(dirs),$(wildcard $(dir)/*))
 files := $(wildcard a/* b/* c/* d/*)
 ```
 
+## 8.7 `file` 函数
+## 8.8 `call` 函数
+## 8.9 `value` 函数
+## 8.10 `eval` 函数
+## 8.11 `origin` 函数
+## 8.12 `flavor` 函数
+## 8.13 用于控制 make 的函数
+
 ## 8.14 `shell` 函数
 
-此函数将shell命令作为参数并扩展到命令的输出。
+此函数将shell命令作为参数并展开到命令的输出。
+
+## 8.15 `guile` 函数
+
+# 9 如何运行 make
+
+## 9.8 选项汇总
+以下是 *make* 理解的所有选项的表格：
+
+`-b`<br>`-m`<br>为了与其他版本的make兼容，将忽略这些选项。
+
+`-B`<br>`--always-make`<br>认为所有目标都已过时。GNU *make* 继续使用正常算法来考虑目标及其先决条件；然而，无论其先决条件的状态如何，所考虑的所有目标都会重新生成。为了避免无限递归，如果将 `MAKE_RESTARTS`（请参阅 [6.14 Other Special Variables](https://www.gnu.org/software/make/manual/make.html#Special-Variables)）设置为大于 0 的数字，则在考虑是否重新生成 *makefile* 时会禁用此选项（请参阅 [3.5 How Makefiles Are Remade](https://www.gnu.org/software/make/manual/make.html#Remaking-Makefiles)）。
+
+`-C dir`
+`--directory=dir`
+
 # 10 Using Implicit Rules
 
 _隐式规则_ 告诉 _make_ 如何使用惯用的方法，以便您在想要使用它们时不必详细指定它们。
@@ -2164,7 +2689,7 @@ _n_ 是通过运行C编译器链接程序从 *n. o* 自动生成的。使用的�
 模式规则( *pattern rule* )与普通规则不同之处在于牵扯包含字符 `%` 。target 被认为是匹配文件名的模式；`%` 可以匹配任何非空子字符串。先决条件同样使用 `%` 来显示它们的名称与目标名称的关系。
 `%.o : %.c` 说明如何从另一个文件 *stem.c* 制作任何文件 *stem.o* （stem 词干）
 
-请注意，在模式规则中使用“%”的扩展发生在任何变量或函数扩展之后，这些扩展发生在读取makefile时。详细见 [6 How to Use Variables](https://www.gnu.org/software/make/manual/make.html#Using-Variables) 和 [8 Functions for Transforming Text](https://www.gnu.org/software/make/manual/make.html#Functions) 。
+请注意，在模式规则中使用“%”的展开发生在任何变量或函数展开之后，这些展开发生在读取makefile时。详细见 [6 How to Use Variables](https://www.gnu.org/software/make/manual/make.html#Using-Variables) 和 [8 Functions for Transforming Text](https://www.gnu.org/software/make/manual/make.html#Functions) 。
 
 ### 10.5.1 模式规则介绍
 
@@ -2271,7 +2796,7 @@ foolib(hack.o kludge.o)
 foolib(hack.o) foolib(kludge.o)
 ```
 
-您还可以在存档成员引用中使用shell样式的通配符。请参阅 [4.4 Using Wildcard Characters in File Names](https://www.gnu.org/software/make/manual/make.html#Wildcards)。例如，`foolib(*.o)` 扩展到名称以“.o”结尾的 foolib 存档的所有现有成员；也许是 `foolib(hack.o) foolib(kludge.o)` 。
+您还可以在存档成员引用中使用shell样式的通配符。请参阅 [4.4 Using Wildcard Characters in File Names](https://www.gnu.org/software/make/manual/make.html#Wildcards)。例如，`foolib(*.o)` 展开到名称以“.o”结尾的 foolib 存档的所有现有成员；也许是 `foolib(hack.o) foolib(kludge.o)` 。
 ## 11.2 Implicit Rule for Archive Member Targets
 
 
