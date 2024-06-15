@@ -1013,7 +1013,35 @@ three
 
 当 *make* 被赋予 `-n` 或 `--just-print` 标志时，它只会回显大多数配方，而不会执行它们。请参阅 [9.8 Summary of Options](https://www.gnu.org/software/make/manual/make.html#Options-Summary)。在这种情况下，甚至会打印以“@”开头的配方行。这个标志有助于找出哪些配方是必要的，而不需要 *make* 实际操作。
 
-要制作的 `-s` 或 `--silent` 标志可以阻值所有的回显，就好像所有的配方都以 `@` 开头一样。在 makefile 中为特殊目标 “.SILENT” 设置的不带先决条件的规则具有相同的效果。（请参阅 [4.9 Special Built-in Target Names](https://www.gnu.org/software/make/manual/make.html#Special-Targets)）
+传递给 *make* 的 `-s` 或 `--silent` 标志可以阻值所有的回显，就好像所有的配方都以 `@` 开头一样。在 makefile 中为特殊目标 “`.SILENT`” 设置的不带先决条件的规则具有相同的效果。（请参阅 [4.9 Special Built-in Target Names](https://www.gnu.org/software/make/manual/make.html#Special-Targets)）
+
+（译者注，考虑两个 `*makefile*`
+
+```makefile
+text = print_information
+
+all:
+	echo $(text)
+```
+执行结果会在终端中显示两行，即一行是 `makefile` 中的配方的具体内容，领一行是配方的执行结果
+```sh
+echo print_information
+print_information
+```
+
+而增加 `@` 字符后的 `echo`（常用于调试，或查看某个变量的值具体是什么，就不用 [6.3.2 Computed Variable Names](https://www.gnu.org/software/make/manual/make.html#Computed-Names) 中那些复杂内容了 ）
+```makefile
+text = print_information
+
+all:
+	@echo $(text)
+```
+的执行结果只会在终端显示一行
+```sh
+print_information
+```
+
+）
 
 ## 5.3 配方的执行
 当需要执行配方来更新目标时，它们是通过为配方的每一行调用一个新的 子shell(sub-shelll) 来执行的，除非特殊目标 `.ONESHELL` 生效（请参阅 [5.3.1 Using One Shell](https://www.gnu.org/software/make/manual/html_node/One-Shell.html)）（在实践中，make可能会采取不影响结果的快捷方式。）
@@ -1765,7 +1793,7 @@ bar := $(foo:%.o=%.c)
 ```makefile
 objects = main.o foo.o bar.o utils.o
 ```
-定义一个名为 `objects` 的变量以包含值“`main.o foo.o bar.o utils.o`”。**变量名周围和紧跟在 `=` 后面的空白字符被忽略**。
+定义一个名为 `objects` 的变量以包含值“`main.o foo.o bar.o utils.o`”。**变量名周围和紧跟在 `=` 后面的空白字符被忽略**。（译者注，这里建议看一下我在 8.1 小节末尾的注释）
 
 用 "`=`" 定义的变量是*递归展开变量*。用"`:=`"或 "`::=`" 定义的变量是*简单展开变量*；这些定义可以包含变量引用，这些引用将在定义之前展开。用 "`:::=`" 定义的变量是*立即展开变量*。不同的赋值操作符在 [6.2 The Two Flavors of Variables](https://www.gnu.org/software/make/manual/make.html#Flavors) 中有所描述。
 
@@ -2439,38 +2467,73 @@ endif
 前缀“`+`”将这些配方行标记为“递归”，这样即使使用了“`-t`”标志，它们也会被执行。请参阅 [5.7 Recursive Use of make](https://www.gnu.org/software/make/manual/make.html#Recursion)。
 
 
-# 8 Functions for Transforming Text
+# 8 用于转换文本的函数
 
-函数的目的是在makefile中进行文本处理，以计算要操作的文件或要在 recipes 中使用的命令。
+函数允许您在 *makefile* 中进行文本处理，以计算要操作的文件或要在配方中使用的命令。您在函数调用中使用一个函数，在该调用中您提供函数名称和一些文本（参数）供函数操作。函数处理的结果会在调用处被替换到 *makefile* 中，就像变量被替换一样。
 
 ## 8.1 调用函数的语法
 
-`$(function arguments)`
-`${function arguments}`
+函数调用类似于变量引用，任何可以出现变量引用的地方也可以出现函数调用，并且使用与变量引用相同的规则对其进行扩展。函数调用看起来像这样
 
-除了调用 make 原本的函数，还可以通过内置函数 `call` 来创建自己的函数。
-参数与函数名之间通过数量不限的空格或 TAB 分隔，多个参数之间通过逗号分隔。
+```makefile
+$(function arguments)
+```
+或者像这样
+```makefile
+${function arguments}
+```
+
+在这里 `function` 是一个函数名称；可以是 make 中的简短列表之一。您还可以使用内置函数 `call` 创建自己的函数。
+
+参数(arguments)是函数的参数。它们**与函数名之间用一个或多个空格或制表符分隔**，如果有**多个参数，则用逗号分隔**。这些空格和逗号不是参数值的一部分。用于包围函数调用的分隔符，无论是括号还是大括号，只能以匹配对的形式出现在参数中；另一种类型的分隔符可能单独出现。如果参数本身包含其他函数调用或变量引用，最好对所有引用使用相同类型的分隔符；写“ `‘$(subst a,b,$(x))` ”，而不是“ `$(subst a,b,${x})` ”。这是因为它更清晰，并且因为只有一种类型的分隔符匹配以找到引用的结尾。
+
 除非下面另有说明，否则每个参数都会在调用函数之前展开。替换是按照参数出现的顺序完成的。
 
 **特殊字符**
-当使用特殊的字符作为函数参数时，您可能需要隐藏它们。GNU make不支持带有反斜杠或其他转义序列的转义字符（*疑问，不支持吗？估计指的是不支持使用反斜杠来转移这些特殊字符吧*）；但是，由于参数在展开之前会被拆分，因此您可以通过将它们放入变量来隐藏它们。
+当使用特殊的字符作为函数参数时，您可能需要隐藏它们。GNU *make* 不支持使用反斜杠或其他转义序列转义字符；（*疑问，不支持吗？估计指的是不支持使用反斜杠来转移这些特殊字符吧*）；但是，由于参数在展开之前会被拆分，因此您可以通过将它们放入变量来隐藏它们。
 需要隐藏的特殊字符包含：
 - 逗号
 - 第一个参数中的初始空白
 - 不匹配的小括号或大括号
-- 如果您不想让它开始匹配的一对，则使用左括号或大括号
+- 一个您不想让它匹配的开圆括号或开大括号
 
-使用方法举例如下：
-```
+例如，您可以定义变量 `comma` 和 `space`，其值是单独的逗号和空格字符，然后在需要这些字符的地方替换这些变量，如下所示：
+
+```makefile
 comma:= ,
-# 注意 empty:=后没有空格
 empty:=
 space:= $(empty) $(empty)
 foo:= a b c
 bar:= $(subst $(space),$(comma),$(foo))
+# bar is now ‘a,b,c’.
 ```
-结果是 `bar` 变成了 `a,b,c`
+这里 `subst` 函数将 `foo` 的值中的每个空格用逗号替换。
+（译者注，在 [6.5 Setting Variables](https://www.gnu.org/software/make/manual/make.html#Setting) 中描述到 **变量名周围和紧跟在 `=` 后面的空白字符被忽略**
+
+```makefile
+space_two =    
+empty:=
+space:= $(empty) $(empty)
+
+text_space_two = print$(space_two)information
+text_space = print$(space)information
+
+debug:
+	@echo $(text_space_two)
+	@echo $(text_space)
+```
+
+的执行结果是
+```
+printinformation
+print information
+```
+
+即， 即使在`space_two`变量的`=` 符号后输入了两个（或者三个、四个...）空白字符，它的变量值也是空的。）
+
 ## 8.2 字符串替换和分析的函数
+
+以下是一些对字符串进行操作的函数：
 
 - `$(subst from,to,text)`
 	将 `text` 中出现的每一个 `from` 替换成 `to`
@@ -2483,36 +2546,36 @@ bar:= $(subst $(space),$(comma),$(foo))
     单词之间的空格被折叠成单个空格字符；前导和尾随空格被丢弃。
     
     [6.3.1 Substitution References](https://www.gnu.org/software/make/manual/make.html#Substitution-Refs) 可以以更简单的方式实现 *patsubst* 函数的功能（*注，很有用*）
-```
-$(var:pattern=replacement)
-# 等效于
-$(patsubst pattern,replacement,$(var))
+    ```makefile
+    $(var:pattern=replacement)
+    # 等效于
+    $(patsubst pattern,replacement,$(var))
 
-# suffix在这里特指后缀，一定要是后缀
-$(var:suffix=replacement)
-# 等效于
-$(patsubst %suffix,%replacement,$(var))
-```
+    # suffix在这里特指后缀，一定要是后缀
+    $(var:suffix=replacement)
+    # 等效于
+    $(patsubst %suffix,%replacement,$(var))
+    ```
 
-例如
-```
-objects = foo.o bar.o baz.o
-$(objects:.o=.c) # 等效于 $(patsubst %.o,%.c,$(objects))
-```
+    例如
+    ```makefile
+    objects = foo.o bar.o baz.o
+    $(objects:.o=.c) # 等效于 $(patsubst %.o,%.c,$(objects))
+    ```
 
 - `$(strip string)`
 	从*string*中删除前导和尾随空格，并将内部序列中的一个或多个空格字符替换为单个空格。`$(strip a b c )` 的结果是 `a b c`
 	当使用`ifeq`或`ifneq`将某物与空字符''进行比较时，您通常需要一个只有空格的字符串来匹配空字符串(详见 [7 Conditional Parts of Makefiles](https://www.gnu.org/software/make/manual/make.html#Conditionals))(建议看看 bootloader 和 linux 的 makefile 写法)。例如：
-```
-.PHONY: all
-ifneq   "$(needs_made)" ""
-# ifneq 这行更好的方法是使用 
-# ifneq "$(strip $(needs_made))" ""
-all: $(needs_made)
-else
-all:;@echo 'Nothing to make!'
-endif
-```
+    ```makefile
+    .PHONY: all
+    ifneq   "$(needs_made)" ""
+    # ifneq 这行更好的方法是使用 
+    # ifneq "$(strip $(needs_made))" ""
+    all: $(needs_made)
+    else
+    all:;@echo 'Nothing to make!'
+    endif
+    ```
 
 - `$(findstring find,in)`
 	搜索 *in* 中 *find* 是否出现。如果出现了，则该值为 *find*；否则，该值为空。您可以在条件中使用此函数来测试给定字符串中是否存在特定子字符串。配合条件语句使用（[7.3 Conditionals that Test Flags](https://www.gnu.org/software/make/manual/make.html#Testing-Flags)）
@@ -2520,12 +2583,12 @@ endif
 - `$(filter pattern…,text)`
 	返回 *text* 中与任何 *pattern* 单词匹配的所有由空格分隔的单词，删除任何不匹配的单词。
 	filter 函数可用于分离变量中不同类型的字符串（例如文件名）。例如
-```
-sources := foo.c bar.c baz.s ugh.h
-foo: $(sources)
-        cc $(filter %.c %.s,$(sources)) -o foo
-```
-foo依赖于foo. c、bar.c、baz.s和ugh.h，但只应在编译器的命令中指定foo.c、bar.c和baz.s。
+    ``` makefile
+    sources := foo.c bar.c baz.s ugh.h
+    foo: $(sources)
+            cc $(filter %.c %.s,$(sources)) -o foo
+    ```
+    foo依赖于foo. c、bar.c、baz.s和ugh.h，但只应在编译器的命令中指定foo.c、bar.c和baz.s。
 
  - `$(filter-out pattern…,text)`
 	 返回 *text* 中与 *pattern* 均不匹配的所有由空格分隔的单词，删除与一个或多个 *pattern* 匹配的单词。这与函数 `filter` 完全相反。
@@ -2535,10 +2598,10 @@ foo依赖于foo. c、bar.c、baz.s和ugh.h，但只应在编译器的命令中�
 	返回 *text* 中的第n个单词。n的合法值从1开始。如果n大于文本中的单词数，则该值为空。
 - `$(wordlist s,e,text)`
 	返回 *text* 中以 *s* 开头、以*e*（含）结尾的单词列表。*s*的合法值从1开始；e可以从0开始。如果*s*大于文本中的单词数，则该值为空。如果*e*大于文本中的单词数，则返回文本末尾的单词。如果*s*大于*e*，则不返回任何内容。例如
-```
-$(wordlist 2, 3, foo bar baz)
-```
-的结果是 `bar baz`
+    ```makefile
+    $(wordlist 2, 3, foo bar baz)
+    ```
+    的结果是 `bar baz`
 - `$(words text)`
 	返回值是一个数，代表 *text* 中的单词数。因此`$(word $(words text),text)` 可以返回 *text* 中最后一个单词
 - `$(firstword names…)`
@@ -2546,83 +2609,514 @@ $(wordlist 2, 3, foo bar baz)
 - `$(lastword names…)`
 	参数 *names* 被视为一系列由空格分隔的名称。返回值是 *names* 中的最后一个名称。其余名称将被忽略。`$(lastword names…)` 等效于 `$(word $(words text),text)`
 
-下面是`subst`和`patsubst`使用的真实示例。假设makefile使用`VPATH`变量来指定应该搜索先决条件文件的目录列表（见 [4.5.1 `VPATH` Search Path for All Prerequisites](https://www.gnu.org/software/make/manual/make.html#General-Search)）。此示例显示如何告诉C编译器在同一目录列表中搜索头文件。
-`VPATH`的值是由冒号分隔的目录列表，例如 `src:../headers`。首先，`subst`函数用于将冒号更改为空格：
-```
-$(subst :, ,$(VPATH))
-```
-结果是 `src ../headers` 。然后使用 `patsubst` 将每个目录名转换为“-I”标志。这些可以添加到变量CFLAGS的值中，该值会自动传递给C编译器，如下所示：
-```
-override CFLAGS += $(patsubst %,-I%,$(subst :, ,$(VPATH)))
-```
-效果是将文本 `-Isrc -I../headers` 附加到先前给定的CFLAGS值。使用覆盖指令，即使使用命令参数指定了CFLAGS的先前值，也会分配新值。
+    下面是`subst`和`patsubst`使用的真实示例。假设makefile使用`VPATH`变量来指定应该搜索先决条件文件的目录列表（见 [4.5.1 `VPATH` Search Path for All Prerequisites](https://www.gnu.org/software/make/manual/make.html#General-Search)）。此示例显示如何告诉C编译器在同一目录列表中搜索头文件。
+    `VPATH`的值是由冒号分隔的目录列表，例如 `src:../headers`。首先，`subst`函数用于将冒号更改为空格：
+    ```makefile
+    $(subst :, ,$(VPATH))
+    ```
+    结果是 `src ../headers` 。然后使用 `patsubst` 将每个目录名转换为“-I”标志。这些可以添加到变量CFLAGS的值中，该值会自动传递给C编译器，如下所示：
+    ```makefile
+    override CFLAGS += $(patsubst %,-I%,$(subst :, ,$(VPATH)))
+    ```
+    效果是将文本 `-Isrc -I../headers` 附加到先前给定的CFLAGS值。使用覆盖指令，即使使用命令参数指定了`CFLAGS`的先前值，也会分配新值。
+
 ## 8.3 用于文件名的函数
 
-一些内置的展开功能专门涉及拆分文件名或文件名列表。以下每个函数都对文件名执行特定的转换。函数的参数被视为一系列文件名，由空格分隔。（前导和尾随空格被忽略。）
+一些内置的扩展功能专门涉及拆分文件名或文件名列表。
 
-- $(dir names...)
-- $(notdir names...)
-    提取 _names_ 中每个文件名的目录部分以外的所有内容。如果文件名不包含斜杠，则保持不变。否则，最后一个斜杠前的所有内容都将从中删除。
+以下每个函数都对文件名执行特定的转换。函数的参数被视为一系列由空格分隔的文件名。（前导和尾随空格被忽略。）系列中的每个文件名都以相同的方式转换，结果之间用单个空格连接。
+
+- `$(dir names...)`
+
+    提取 `names` 中每个文件名的目录部分。文件名的目录部分是其中直到最后一个斜杠（包括最后一个斜杠）的所有内容。如果文件名不含斜杠，则目录部分是字符串 "`./`". 例如，
+    ```makefile
+    $(dir src/foo.c hacks)
     ```
+    执行的结果是 "`src/ ./`"
+
+- `$(notdir names...)`
+
+    提取 `names` 中每个文件名的目录部分以外的所有内容。如果文件名不包含斜杠，则保持不变。否则，最后一个斜杠前的所有内容都将从中删除。
+
+    以斜杠结尾的文件名变成了空字符串。这很不幸，因为这意味着结果中的以空格分割的文件名并不总是与参数中的数量；但是我们没有任何其它有效的替代方案。
+
+    例如
+
+    ```makefile
     $(notdir src/foo.c hacks)
-	```
-	结果是 'foo.c hacks'
-- $(suffix names...)
-- $(basename names...)
-- $(addsuffix suffix,names...)
-- $(addprefix prefix,names...)
-    _prefix_ 的值被添加到每个单独名称的前面，生成的较大名称之间用单个空格连接。
     ```
+
+    结果是 "`foo.c hacks`"
+
+- `$(suffix names…)`
+    提取 `names` 中每个文件名的后缀。如果文件名包含句点，则后缀是以最后一个句点开始的所有内容。否则，后缀是空字符串。这通常意味着即使 `names` 不为空时结果也可能空，如果 `names` 包含多个文件名，结果可能包含更少的文件名。
+    例如
+    ```makefile
+    $(suffix src/foo.c src-1.0/bar.c hacks)
+    ```
+    执行的结果是 "`.c .c`"
+- `$(basename names…)`
+    提取 `names` 中每个文件名的后缀以外的所有内容。如果文件名包含句点，则 *basename* 是从开始直到最后一个句点（不包括）的所有内容。**目录部分中的句点将被忽略**。如果没有句点，则 *basename* 是整个文件名。例如，
+    ```makefile
+    $(basename src/foo.c src-1.0/bar hacks)
+    ```
+    结果是 "`src/foo src-1.0/bar hacks`"
+
+- `$(addprefix prefix,names…)`
+    参数 `names` 被视为一系列由空格分隔的名称；`prefix` 用作一个单位。`prefix` 的值被添加到每个单独名称的前面，生成的多个较大名称之间用单个空格连接。例如，
+
+    ```makefile
     $(addprefix src/,foo bar)
 	```
+
 	结果是 'src/foo src/bar'
-- $(join list1,list2)
-- $(wildcard pattern)
-    参数 *pattern* 是文件名模式，通常包含通配符。`wildcard` 函数的结果是一个由空格分隔的、匹配该 *pattern* 的、现有文件的名称列表。请参阅 [4.4 Using Wildcard Characters in File Names](https://www.gnu.org/software/make/manual/make.html#Wildcards)。
-- $(realpath names...)
-- $(abspath names...)
+
+- `$(join list1,list2)`
+
+    将两个参数一个单词一个单词地相连：两个参数中的各自的第一个单词连接形成结果中的第一个单词，两个第二个单词形成结果的第二个单词，依此类推。所以结果的第 n 个单词来自每个参数的第 n 个单词。如果一个参数比另一个参数有更多的单词，则将额外的单词原封不动地复制到结果中。
+
+    例如，"`$(join a b,.c .o)`" 生成 "`a.c b.o`"。
+
+    列表中单词之间的空格不会保留；它被单个空格替换。
+
+    此函数可以合并 `dir` 和 `notdir` 函数的结果，以生成提供给这两个函数的原始文件列表。
+
+- `$(wildcard pattern)`
+    参数 *pattern* 是文件名模式，通常包含通配符(如在shell文件名模式中)。`wildcard` 函数的结果是一个由空格分隔的、匹配该 *pattern* 的、现有文件的名称列表。请参阅 [4.4 Using Wildcard Characters in File Names](https://www.gnu.org/software/make/manual/make.html#Wildcards)。
+
+- `$(realpath names…)`
+    对于 `names` 中的每个文件名，返回规范的绝对名称。规范名称不包含任何 `.` 或 `..` 元素，也不包含任何重复的路径分隔符（/）或符号链接(symlink)。如果失败，则返回空字符串。有关可能的失败原因列表，请参阅 realpath(3) 文档（译者注，参阅 [realpath(3) — Linux manual page](https://www.man7.org/linux/man-pages/man3/realpath.3.html) 作为参考）。
+
+- `$(abspath names…)`
+    对于 `names` 中的每个文件名，返回一个不包含任何 `.` 或 `..` 元素、也不包含任何重复的路径分隔符（/）的绝对名称。请注意，与 `realpath` 函数相比，`abspath` 不解析符号链接，也不要求文件名引用现有文件或目录。使用 `wildcard` 函数测试是否存在。
 
 ## 8.4 条件函数
 
+有四个函数提供条件展开。这些函数的一个关键是并不是所有的参数都在最初被扩展。只有那些需要扩展的参数才会被扩展。
+
+- `$(if condition,then-part[,else-part])`
+
+- `$(or condition1[,condition2[,condition3…]])`
+
+- `$(and condition1[,condition2[,condition3…]])`
+
+- `$(intcmp lhs,rhs[,lt-part[,eq-part[,gt-part]]])`
+
 ## 8.5 `let` 函数
+
+`let` 函数提供了一种限制变量范围的方法。`let` 表达式中命名变量的赋值仅在 `let` 表达式提供的文本中有效，这种赋值不会影响任何外部范围的此名称的变量。
+
+此外，`let` 函数通过将所有未分配的值分配给最后一个命名变量来启用列表解包。
+
+`let` 函数的语法是：
+
+```makefile
+$(let var [var ...],[list],text)
+```
+
+前两个参数，`var` 和 `list`，在完成任何其他操作之前被展开；请注意，最后一个参数 `text` 不会同时被展开。接下来，`list`的展开值的每个单词会依次被绑定到·`var` 中的每个变量名，最后的变量名称被绑定到 展开`list` 的其余部分。换句话说，`list` 的第一个单词绑定到第一个变量 `var`，第二个单词绑定到第二个变量`var`，依此类推。
+
+如果 `var` 中的变量名称数量多于 `list` 中的单词数量，则将剩余的 `var` 变量名称设置为空字符串。如果 `var` 少于 `list` 中的单词，则将最后一个 `var` 设置为 `list` 中的所有剩余单词。
+
+在 `let` 的执行过程中，`var` 中的变量被分配为*简单展开*变量。请参阅 [6.2 The Two Flavors of Variables](https://www.gnu.org/software/make/manual/make.html#Flavors)
+
+绑定所有变量后，展开 `text` 以提供 `let` 函数的结果。
+
+例如，这个宏颠倒了列表中作为第一个参数给出的单词的顺序：
+
+```makefile
+reverse = $(let first rest,$1,\
+            $(if $(rest),$(call reverse,$(rest)) )$(first))
+
+all: ; @echo $(call reverse,d c b a)
+```
+
+会打印 "`a b c d`"。第一次调用的时候，`let` 将 `$1` 展开为 `d c b a`。然后它将 `first` 分配给 `d`，并将 `rest` 分配给 `c b a`。然后它将展开 *if语句*，其中 `$(rest)` 不为空，因此我们递归调用 `rest` 当前值是 `c b a` 的 `reverse` 函数。`let` 的递归调用将 `first` 分配给 `c`，`rest` 分配给 `b a`。递归一直持续到 `let` 被调用时只有一个值 `a`。这里 `first` 是 `a`，`rest` 为空，所以我们不递归，而是简单地将 `$(first)`扩展为 `a` 并返回，这个过程中增加了 `b` 和其它。
+
+（
+译者注，这里稍微解释一下
+```makefile
+$(let var [var ...],[list],text)
+```
+中的 `var [var ...]` 表示的是 `var` 至少有一个变量名称，如果有多个，则以空格分隔。
+
+和上个 `makefile` 中对应，`first rest` 对应 `var [var]`。
+`$1` 展开成的 `d c b a` 对应 `[list]`
+后续就跟着原文中的解释理解就可以了
+）
+
+`reverse` 调用完成后，不再设置 `first` 和 `rest`。如果这些名称的变量事先存在，它们不受宏 `reverse` 展开的影响。
+
 
 ## 8.6 `foreach` 函数
 
-语法
-```
+`foreach` 函数类似于 `let` 函数，但与其他函数非常不同。它导致一段文本被重复使用，但每次都对其执行不同的替换。`foreach` 函数类似于 shell *sh*中的 `for` 命令和 C-shell *csh* 中的 `foreach` 命令。
+
+`foreach` 函数的语法是
+```makefile
 $(foreach var,list,text)
 ```
 
-*var* 是一个局部的临时变量，只在 `foreach` 函数中有效。
+前两个参数，`var` 和 `list`，在做其他任何事情之前展开；注意最后一个参数 `text` 没有同时展开。然后将 `list` 中以空格分隔的字符串依次赋值给 `var` 的展开值命名的变量，并在每次赋值后执行 `text` 展开的表达式；重复直到 `list` 的最后一个字符串。根据上述描述可推测 `text` 包含对 `var` 变量的引用，所以每次它的展开都会不同。
 
-首先将前两个参数 *var* 和 *list* 在做其它任何事情之前展开；然后将 *list* 中以空格分隔的字符串依次赋值给 *var* 临时变量，再执行 *text* 表达式；重复直到 *list* 的最后一个字符串。
+结果是 `text` 被展开的次数等于 `list` 中以空格分隔的单词的个数。`text` 的多个展开被连接起来，它们之间有空格，作为 `foreach` 的结果。
 
-根据上述描述可推测 *text* 需包含 *var* 变量的引用。结果是 *text* 被展开的次数等于 *list* 中以空格分隔的单词的个数。*text* 的多个展开被连接起来，它们之间有空格，作为 `foreach` 的结果。
+这个简单的示例将变量 "*files*" 设置为列表 "*dirs*" 中目录中所有文件的列表：
 
-```
+```makefile
 dirs := a b c d
 files := $(foreach dir,$(dirs),$(wildcard $(dir)/*))
 ```
 
-的结果是（`wildcard`函数执行的结果见4.3）
+这里 `text` 是 "`$(wildcard $(dir)/*)`"。第一次重复找到 `dir` 的值 "`a`" ，因此它产生的结果是 "`$(wildcard a/*)`"；第二次重复产生的结果是 "`$(wildcard b/*)`"；第三次是 "`$(wildcard c/*)`"。
 
-```
+此示例与以下示例具有相同的结果（设置 "`dirs`" 除外）：
+
+```makefile
 files := $(wildcard a/* b/* c/* d/*)
 ```
 
+当 `text` 很复杂时，您可以通过给它一个具有名称的变量来提高易读性：
+
+```makefile
+find_files = $(wildcard $(dir)/*)
+dirs := a b c d
+files := $(foreach dir,$(dirs),$(find_files))
+```
+
+这里我们以这种方式使用变量 `find_files`。我们使用简单的 `=` 来定义一个*递归展开*变量，这样它的值就包含了一个实际的函数调用，这个函数调用将在 `foreach` 的控制下重新展开；*简单展开*的变量则不会重新展开，因为 `wildcard` 函数只会在定义 `find_files` 时被调用一次。
+
+与 `let` 函数一样，`foreach` 函数对变量 `var` 没有永久影响；`var` 在 `foreach` 函数调用后的值和风格与之前相同。从 `list` 中获取的其他值仅在 `foreach` 执行期间暂时有效。变量 `var` 是在 `foreach` 执行期间*简单展开*的变量。如果 `var` 在 `foreach` 函数调用之前未定义，则在调用后也会是未定义的。请参阅 [6.2 The Two Flavors of Variables](https://www.gnu.org/software/make/manual/make.html#Flavors)。
+
+在使用可能会是某个变量名的复杂变量表达式时，您必须小心，因为许多奇怪的东西都是有效的变量名，但可能不是你想要的。例如，
+
+```makefile
+files := $(foreach Esta-escrito-en-espanol!,b c ch,$(find_files))
+```
+
+如果 `find_files` 的值引用名称为 "`Esta-escrito-en-espanol!`" 的变量(这是一个很长的名字，不是吗？)，则可能会很有用，但这更有可能是一个错误。
+
 ## 8.7 `file` 函数
+
+`file` 函数允许 *makefile* 对文件进行写入或读取。支持两种写入模式：覆盖（其中文本被写入文件的开头，并且任何现有内容都将丢失）和追加（其中文本被写入文件的末尾，保留现有内容）。在这两种情况下，如果文件不存在，则创建文件。如果文件无法打开进行写入，或者写入操作失败，这是一个致命的错误。`file` 函数在写入文件时展开为空字符串。
+
+从文件中读取时，`file` 函数会展开为文件的逐字内容，但最终的换行符（如果有的话）将被剥离。尝试从不存在的文件中读取会展开为空字符串。
+
+`file` 函数的语法是
+
+```makefile
+$(file op filename[,text])
+```
+
+当 `file` 函数被评估时，它的所有参数在第一时间被扩展，然后 `filename` 指示的文件将以 `op` 描述的模式打开。
+
+操作 `op` 可以是 `>` 表示文件将被新内容覆盖，`>>` 表示将新内容附加到文件的当前内容后，或 `<` 表示文件的内容将被读入。`filename` 指定要写入或读取的文件。`op` 和 `filename` 之间可以有空格。
+
+读取文件时，提供 `text` 值会发生错误。
+
+写入文件时，`text` 将被写入文件。如果 `text` 尚未以换行符结尾，则将写入最终换行符（即使 `text` 是空字符串）。如果根本没有给出 `text` 参数，则不会写入任何内容。
+
+例如，如果您的构建系统具有有限的命令行大小，并且您的配方运行的命令也可以接受文件中的参数，则 `file` 函数非常有用。许多命令使用这样的约定——以 `@` 为前缀的参数指定文件包含更多参数。然后您可以这样编写配方：
+
+```makefile
+program: $(OBJECTS)
+    $(file >$@.in,$^)
+    $(CMD) $(CMDFLAGS) @$@.in
+    @rm $@.in
+```
+
+如果命令要求每个参数在输入文件的单独行上，您可以像这样编写配方：
+
+```makefile
+program: $(OBJECTS)
+    $(file >$@.in) $(foreach O,$^,$(file >>$@.in,$O))
+    $(CMD) $(CMDFLAGS) @$@.in
+    @rm $@.in
+```
+
 ## 8.8 `call` 函数
+
+`call` 函数的独特之处在于它可用于创建新的参数化函数。您可以编写一个复杂的表达式作为变量的值，然后使用 `call` 将其扩展为不同的值。
+
+`call` 函数的语法是
+
+```makefile
+$(call variable,param,param,…)
+```
+
+当 *make* 展开此函数时，它将每个 `param` 分配给临时变量 `$(1)`、`$(2)` 等。变量 `$(0)` 将包含 `variable`。参数没有最大数量，也没有最小值，但是使用没有参数的 `call` 没有意义。
+
+然后 `variable` 在这些临时赋值的上下文中扩展为 *make* 变量。因此，在调用 `call` 中，`variable` 值中对 `$(1)` 的任何引用都将解析为的第一个 `param`。
+
+请注意此处的 `variable` 是变量的名称，而不是对该变量的引用。因此，您在编写它时通常不会使用 "`$`" 或括号。（但是，如果您希望此处的变量名称不是常量，则可以使用变量引用。）
+
+如果 `variable` 是内置函数的名称，则始终调用内置函数（即使该名称的 *make* 变量也存在）。
+
+`call` 函数在将 `param` 分配给临时变量之前展开 `param` 参数。这意味着包含对具有特殊展开规则（如 `foreach` 或 `if`）的内置函数的引用的 `variable` 值可能无法按预期工作。
+
+一些例子可能会使这一点更清楚。
+
+这个宏只是反转它的参数：
+
+```makefile
+reverse = $(2) $(1)
+
+foo = $(call reverse,a,b)
+```
+
+执行后 `foo` 会包含 `b a`。
+
+这个稍微有趣一点：它定义了一个宏来搜索 `PATH` 中程序的第一个实例：
+
+```makefile
+pathsearch = $(firstword $(wildcard $(addsuffix /$(1),$(subst :, ,$(PATH)))))
+
+LS := $(call pathsearch,ls)
+```
+
+执行后变量 `LS` 包含 `/bin/ls` 或者相似的内容。
+
+`call` 函数可以嵌套。每个递归调用都有自己的 `$(1)` 等局部值，这些值掩盖了更高级别 `call` 函数的值。例如，这是一个 `map` 函数的实现：
+
+```makefile
+map = $(foreach a,$(2),$(call $(1),$(a)))
+```
+
+现在您可以将在一个步骤中将通常只接受一个参数（例如 `origin`）的函数 `map`(映射) 到多个值：
+
+```makefile
+o = $(call map,origin,o map MAKE)
+```
+
+并以包含 "`file file default`" 之类的内容的 `o` 结束。
+
+最后一个注意事项：向 `call` 函数的参数中添加空白字符时要小心。与其他函数一样，第二个和后续参数中包含的任何空白字符都将保留；这可能会导致奇怪的影响。在提供给 `call` 函数的参数时，删除所有无关的空格通常是最安全的。
+
 ## 8.9 `value` 函数
+
+`value` 函数为您提供了一种使用变量值而不进一步展开变量值的方法。请注意，这不会撤消已经发生的展开；例如，如果您创建一个*简单展开*的变量，它的值会在定义期间扩展；在这种情况下，值函数将返回与直接使用变量相同的结果。
+
+`value` 函数的语法是
+
+```makefile
+$(value variable)
+```
+
+请注意此处的 `variable` 是变量的名称，而不是对该变量的引用。因此，您在编写它时通常不会使用 "`$`" 或括号。（但是，如果您希望此处的变量名称不是常量，则可以使用变量引用。）
+
+此函数的结果是一个包含没有发生过任何展开的 `variable` 变量值的字符串。例如，在这个 *makefile* 中：
+
+```makefile
+FOO = $PATH
+
+all:
+    @echo $(FOO)
+    @echo $(value FOO)
+```
+
+第一个输出行将是 `ATH`，因为 "`$P`" 将作为 *make* 变量展开，而第二个输出行将是你的环境变量 `$PATH` 的当前值，因为 `value` 函数避免了展开。
+
+`value` 函数最常与 `eval` 函数结合使用。请参阅 [8.10 The eval Function](https://www.gnu.org/software/make/manual/make.html#Eval-Function)。
+
 ## 8.10 `eval` 函数
+
+`eval` 函数非常特殊：它允许您定义新的不恒定的 *makefile* 结构；这是评估其他变量和函数的结果。`eval` 函数的参数被展开，然后扩展的结果被解析为 *makefile* 语法。展开的结果可以定义新的 *make* 变量、目标、隐式或显式规则等。
+
+`eval` 函数的结果总是空字符串；因此，它几乎可以放置在 *makefile* 中的任何位置，而不会导致语法错误。
+
+重要的是要意识到 `eval` 参数被扩展了两次；首先是由 `eval` 函数，然后当它们被解析为 *makefile* 语法时，第一次展开的结果被再次展开。这意味着在使用 `eval` 时，您可能需要为 "`$`" 字符提供额外的转义级别。`value` 函数（请参阅 [8.9 The value Function](https://www.gnu.org/software/make/manual/make.html#Value-Function)）有时在这些情况下很有用，可以规避不需要的扩展。
+
+下面是一个如何使用 `eval` 的例子；这个例子结合了许多概念和其它函数。尽管与仅仅是写出规则相比，在这个例子中使用 `eval` 似乎过于复杂，但要考虑两件事：首先，模板定义（在 `PROGRAM_template` 中）可能需要比这里的复杂更多；其次，您可以将这个例子中复杂的、通用的部分放入另一个 *makefile* 中，然后将其包含在所有单独的 *makefile* 中。现在您的单独的 *makefile* 非常简单。
+
+```makefile
+PROGRAMS    = server client
+
+server_OBJS = server.o server_priv.o server_access.o
+server_LIBS = priv protocol
+
+client_OBJS = client.o client_api.o client_mem.o
+client_LIBS = protocol
+
+# Everything after this is generic
+
+.PHONY: all
+all: $(PROGRAMS)
+
+define PROGRAM_template =
+ $(1): $$($(1)_OBJS) $$($(1)_LIBS:%=-l%)
+ ALL_OBJS   += $$($(1)_OBJS)
+endef
+
+$(foreach prog,$(PROGRAMS),$(eval $(call PROGRAM_template,$(prog))))
+
+$(PROGRAMS):
+    $(LINK.o) $^ $(LDLIBS) -o $@
+
+clean:
+    rm -f $(ALL_OBJS) $(PROGRAMS)
+```
+
+（译者注
+- `define ... endef` 参阅 [5.8 Defining Canned Recipes](https://www.gnu.org/software/make/manual/make.html#Canned-Recipes)。
+
+- `$(foreach ...)` 参阅 [8.6 The foreach Function](https://www.gnu.org/software/make/manual/make.html#Foreach-Function)
+
+- `$(call ...)` 和 `$(1)` 参阅 [8.8 The call Function](https://www.gnu.org/software/make/manual/make.html#Call-Function)
+
+- `LDLIBS` 参阅 [10.3 Variables Used by Implicit Rules](https://www.gnu.org/software/make/manual/make.html#Implicit-Variables)
+
+- `$^` 和 `$@` 参阅 [10.5.3 Automatic Variables](https://www.gnu.org/software/make/manual/make.html#Automatic-Variables)
+
+）
+
 ## 8.11 `origin` 函数
+
+`origin` 函数与大多数其他函数不同，因为它不对变量的值进行操作；它告诉你一些关于变量的事情。具体来说，它告诉你它来自哪里。
+
+`origin` 函数的语法
+
+```makefile
+$(origin variable)
+```
+
+请注意此处的 `variable` 是变量的名称，而不是对该变量的引用。因此，您在编写它时通常不会使用 "`$`" 或括号。（但是，如果您希望此处的变量名称不是常量，则可以使用变量引用。）
+
+此函数的结果是一个字符串，告诉您变量变量是如何定义的：
+
+- ‘undefined’
+
+- ‘default’
+
+- ‘environment’
+
+- ‘environment override’
+
+- ‘file’
+    `variable` 由某个 *makefile* 定义
+
+- ‘override’
+
+- ‘automatic’
+
+此信息是非常有用（除了满足您的好奇心），其可以用于确定您是否要相信变量的值。例如，假设您有一个包含另一个 *makefile* `bar` 的 *makefile* `foo`。如果您运行命令 `make -f bar`，您希望在 `bar` 中定义一个变量 `bletch`，即使环境包含 `bletch` 的定义。但是，如果 `foo` 在包含 `bar` 之前定义了 `bletch`，您不希望覆盖该定义。这可以通过在 `foo` 中使用 `override` 指令来完成，使该定义优先于 `bar` 中的后面定义；不幸的是，`override` 指令也会覆盖任何命令行定义。因此，`bar` 可以包括：
+
+```makefile
+ifdef bletch
+ifeq "$(origin bletch)" "environment"
+bletch = barf, gag, etc.
+endif
+endif
+```
+
+如果 `bletch` 是从环境中定义的，这将重新定义它。
+
+如果您想覆盖来自环境的 `bletch` 的先前定义，即使在'`-e`'下，您也可以编写：
+
+```makefile
+ifneq "$(findstring environment,$(origin bletch))" ""
+bletch = barf, gag, etc.
+endif
+```
+
+这里，如果 "`$(origin bletch)`" 返回 "environment" 或 "environment override"，则会进行重新定义。参阅 [8.2 Functions for String Substitution and Analysis](https://www.gnu.org/software/make/manual/make.html#Text-Functions)
+
 ## 8.12 `flavor` 函数
+
+`flavor` 函数，像 `origin` 函数一样，不对变量的值进行操作，而是告诉你一些关于变量的事情。具体来说，它告诉你变量的风格（参见 [6.2 The Two Flavors of Variables](https://www.gnu.org/software/make/manual/make.html#Flavors)）。
+
+`flavor` 函数的语法
+
+```makefile
+$(flavor variable)
+```
+
+请注意此处的 `variable` 是变量的名称，而不是对该变量的引用。因此，您在编写它时通常不会使用 "`$`" 或括号。（但是，如果您希望此处的变量名称不是常量，则可以使用变量引用。）
+
+此函数的结果是一个字符串，用于标识 `variable` 变量的风格：
+- 'undefined'
+
+- 'recursive'
+
+- 'simple'
+
 ## 8.13 用于控制 make 的函数
+
+这些函数控制 *make* 运行的方式。通常，它们用于向 *makefile* 的用户提供信息，或者在检测到某种环境错误时导致 *make* 停止。
+
+- `$(error text…)`
+    生成致命错误并且消息为 `text`。请注意，每当评估此函数时都会生成错误。因此，如果您将其放在配方中或递归变量赋值的右侧，则要到稍后才会对其进行评估。`text` 将在生成错误之前展开。
+    例如
+    ```makefile
+    ifdef ERROR1
+    $(error error is $(ERROR1))
+    endif
+    ```
+
+    如果定义了 *make* 变量 `ERROR1`，将在读取 *makefile* 期间生成致命错误。或者，
+
+    ```makefile
+    ERR = $(error found an error!)
+
+    .PHONY: err
+    err: ; $(ERR)
+    ```
+
+    如果调用 `err` 目标，将在 *make* 运行时生成致命错误。
+
+- `$(warning text…)`
+    此函数的工作方式类似于上面的 `error` 函数，不同之处在于 *make* 不会退出。相反， `text` 被展开并显示生成的消息，但 *makefile* 的处理仍在继续。
+
+    此函数扩展的结果是空字符串。
+
+- `$(info text…)`
+    此函数进用于将其（展开的）参数打印到标准输出。没有添加 *makefile* 名称或行号。此函数展开的结果是空字符串。
 
 ## 8.14 `shell` 函数
 
-此函数将shell命令作为参数并展开到命令的输出。
+`shell` 函数与 `wildcard` 函数（请参阅 [4.4.3 The Function wildcard](https://www.gnu.org/software/make/manual/make.html#Wildcard-Function)）以外的任何其他函数不同，因为它与 *make* 之外的世界通信。
+
+`shell` 函数为 *make* 提供的功能，与反引号(\`)为大多数 shell 中提供的功能相同：它进行命令扩展。这意味着它将 shell 命令作为参数并展开成命令的输出。*make* 对结果所做的唯一处理是将每个换行符（或回车-换行符对）转换为单个空格。如果有尾随（回车和）换行符，它将被简单地删除。(译者注，写这篇翻译用的是 markdown 语法，在 markdown 中反引号会指示代码段的出现，所以在这一段的 “反引号(\`)” 处我用反斜杠转义了一下。如果看的是 markdown 的展示效果的话，不会看到反斜杠，如果看的是 markdown 编辑模式的话，才会看到这个反斜杠)。
+
+通过调用 `shell` 函数运行的命令在函数调用被展开时运行（请参阅 [3.7 How make Reads a Makefile](https://www.gnu.org/software/make/manual/make.html#Reading-Makefiles)）。因为这个函数涉及生成一个新的 shell，所以您应该仔细考虑在*递归展开*变量和*简单展开*变量中使用 `shell` 函数对性能的影响（请参阅变量的两种风格）。
+
+`shell` 函数的另一种选择是 ‘`!=`’ 赋值操作符；它提供了类似的行为，但有细微的区别（请参阅 [6.5 Setting Variables](https://www.gnu.org/software/make/manual/make.html#Setting)）。 ‘`!=`’ 赋值操作符被包含在较新的 POSIX 标准中。
+
+使用 `shell` 函数或 ‘`!=`’ 赋值操作符后，其退出状态将放在 `.SHELLSTATUS` 变量中。
+
+以下是一些使用 `shell` 函数的示例：
+
+```makefile
+contents := $(shell cat foo)
+```
+
+将 *contents* 设置为文件 *foo* 的内容，每行之间用空格（而不是换行符）分隔。
+
+```makefile
+files := $(shell echo *.c)
+```
+
+将 *files* 设置为 “`*.c`” 的展开。除非 *make* 使用非常奇怪的 *shell*，否则这与 "`$(wildcard *.c)`" 具有相同的结果（只要至少存在一个 “`*.c`” 文件）。
+
+所有标记为 `export` 的变量也将传递给 `shell` 函数启动的 *shell*。可以创建一个变量展开循环：例如这个makefile：
+
+```makefile
+export HI = $(shell echo hi)
+all: ; @echo $$HI
+```
+
+当 *make* 想要运行配方时，它必须将变量 `HI` 添加到环境中；为此，它必须被扩展。这个变量的值需要调用 `shell` 函数，要调用它，我们必须创建它的环境。由于 `HI` 被导出，我们需要展开它来创建它的环境。依此类推。在这个模糊的情况下，*make* 将使用提供给 *make* 的环境中变量的值，或者如果没有，则使用空字符串，而不是循环或发出错误。这通常是你想要的；例如：
+
+```makefile
+export PATH = $(shell echo /usr/local/bin:$$PATH)
+```
+
+然而，在 `export HI = ` 处使用*简单展开*变量(`:=`)会更简单、更有效 。
 
 ## 8.15 `guile` 函数
+
+如果 GNU *make* 的构建支持 GNU Guile 作为内嵌扩展语言，那么 `guile` 函数将可用。`guile` 函数接受一个参数，该参数首先由 *make* 以正常方式扩展，然后传递给 GNU Guile 评估器。评估器的结果被转换为字符串并用作 *makefile* 中 `guile` 函数的展开。有关在 Guile 中编写展开的详细信息，请参阅 [12.1 GNU Guile Integration](https://www.gnu.org/software/make/manual/make.html#Guile-Integration)。
+
+您可以通过检查 `.FEATURES` 变量中的 `guile` 字符来确定是否支持 GNU Guile。
 
 # 9 如何运行 make
 
