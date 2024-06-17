@@ -581,15 +581,15 @@ cleandiff :
 一个例子将说明这一点：
 ```makefile
 clean: FORCE
-        rm $(objects)
+    rm $(objects)
 FORCE:
 ```
 
-在这里，目标“FORCE”满足特殊条件，因此依赖它的目标 clean 被迫运行其配方。“FORCE”这个名字并没有什么特别之处，但这是一个常用的名字。
+在这里，目标 *FORCE* 满足特殊条件，因此依赖它的目标 clean 被迫运行其配方。“*FORCE*” 这个名字并没有什么特别之处，但这是一个常用的名字。
 
-正如您所看到的，以这种方式使用“FORCE”与使用“,PHONY: clean”具有相同的结果。
+正如您所看到的，以这种方式使用 *FORCE* 与使用 “,PHONY: clean” 具有相同的结果。
 
-正在使用“.PHONY”更明确、更高效。但是，make的其他版本不支持“.PHONY”；因此“FORCE”出现在许多makefile中。
+使用 “.PHONY” 更明确、更高效。但是，make的其他版本不支持“.PHONY”；因此“FORCE”出现在许多makefile中。
 
 ## 4.8 空目标文件以记录事件
 空目标是伪目标的变体；它用于保存您偶尔发出的明确操作请求的配方。与伪目标不同，此目标文件可以真实存在；但文件的内容并不重要，并且通常是空的。
@@ -746,10 +746,11 @@ $(objects) : $(extradeps)
 
 ### 4.12.1 静态模式规则语法
 以下是静态模式规则的语法：
+
 ```makefile
 targets …: target-pattern: prereq-patterns …
-        recipe
-        …
+    recipe
+    …
 ```
 
 *targets list* 指定规则应用的目标。目标可以包含通配符，就像普通规则的目标一样(参阅 [4.4 Using Wildcard Characters in File Names](https://www.gnu.org/software/make/manual/make.html#Wildcards))
@@ -1507,7 +1508,7 @@ frob.out: frob.in
 
 ## 5.9 使用空配方
 
-有时定义什么都不做的配方是有用的。这只给出一个只包含空格的 recipe 即可（译者注：在10.1里说的是要写一个分号）。例如：
+有时定义什么都不做的配方是有用的。这只给出一个只包含空格的 recipe 即可（译者注：在 10.1 里说的是要写一个分号，这是为了不应用隐式规则）。例如：
 
 ``` Makefile
 target: ;
@@ -1682,7 +1683,7 @@ space := $(nullstring) # end of the line
 dir := /foo/bar    # directory to put the frobs in
 ```
 
-这里，变量 `dir` 的值是'/foo/bar    '（后面有四个空格），这可能不是意图。（想象一下类似于“`$(dir)/file`”这样的定义！）
+这里，变量 `dir` 的值是'/foo/bar    '（后面有四个空格），这可能不是您想要的。（想象一下类似于“`$(dir)/file`”这样的定义！）
 
 ### 6.2.3 立即展开变量赋值
 
@@ -3120,6 +3121,53 @@ export PATH = $(shell echo /usr/local/bin:$$PATH)
 
 # 9 如何运行 make
 
+一个用于说明如何重新编译程序的 *makefile* 可以以多种方式被使用。最简单的使用方式是重新编译每个过期的文件。通常，*makefile* 就是这样编写的，即如果您在没有参数的情况下运行 *make*，它就会这样做。
+
+但是您可能只想更新其中的一些文件；您可能希望使用不同的编译器或不同的编译器选项；您可能只想找出哪些文件已过期，而不更改它们。
+
+通过在运行 *make* 时给出参数，您可以做任何这些事情和许多其他事情。
+
+make的退出状态始终是三个值之一：
+
+- 0
+    如果退出状态是0，则意味着 *make* 运行成功。
+- 2
+    如果退出状态为2，则意味着 *make* 遇到错误，它将打印描述特定错误的消息。
+- 1
+    如果您使用 '`-q`' 标志并 make 确定某个目标尚未更新，则退出状态为1。参阅 [9.3 Instead of Executing Recipes](https://www.gnu.org/software/make/manual/make.html#Instead-of-Execution)
+
+## 9.1 用于指定 *Makefile* 的参数
+
+指定 *makefile* 名称的方法是使用 '`-f`' 或 '`--file`' 选项（'`--makefile`' 也可以）。例如，'`-f altmake`'表示使用文件 *altmake* 作为 *makefile*。
+
+如果您多次使用 '`-f`' 标志并在每个 '`-f`' 后面加上一个参数，则所有指定的文件都将共同用作 *makefile*。
+
+如果您不使用 '`-f`' 或 '`--file`' 标志，则默认是按顺序尝试 *GNUmakefile*、*makefile*和*Makefile*，三个存在或可以制作的第一个（请参阅 [3 Writing Makefiles](https://www.gnu.org/software/make/manual/make.html#Makefiles)）。
+
+## 9.2 用于指定终点的参数
+
+终点(goals)是 *make* 最终应该努力更新的目标(target)。如果其他目标作为终点的先决条件或目标先决条件的先决条件等出现，它们也会更新。
+
+## 9.3 而不是执行配方
+
+*makefile* 告诉 *make* 如何判断目标是否是最新的，以及如何更新每个目标。但你并不是每次都想更新目标。某些选项指定 *make* 的其他活动。
+
+- ‘-n’<br>‘--just-print’<br>‘--dry-run’<br>‘--recon’
+
+- ‘-t’<br>‘--touch’
+
+- ‘-q’<br>‘--question’
+
+- ‘-W file’<br>‘--what-if=file’<br>‘--assume-new=file’<br>‘--new-file=file’
+
+## 9.4 避免某些文件的重新编译
+
+## 9.5 覆盖变量
+
+## 9.6 测试一段程序的编译
+
+## 9.7 临时文件
+
 ## 9.8 选项汇总
 以下是 *make* 理解的所有选项的表格：
 
@@ -3132,170 +3180,563 @@ export PATH = $(shell echo /usr/local/bin:$$PATH)
 
 # 10 Using Implicit Rules
 
-_隐式规则_ 告诉 _make_ 如何使用惯用的方法，以便您在想要使用它们时不必详细指定它们。
-一系列隐式规则可以按顺序应用。
-内置的隐式规则在其 recipes 中使用了几个变量，因此，通过更改变量的值，可以更改隐式规则的工作方式。例如，变量 `CFLAGS` 通过C编译的隐式规则控制给C编译器的 flags 。
+我们经常使用某些重新制作目标文件的标准方法。例如，制作目标文件的一种常用方法是使用C编译器 *cc* 从C源文件中获取。
+
+*隐式规则*(*Implicit rules*) 告诉 *make* 如何使用惯用技术，以便您在想要使用它们时不必详细指定它们。例如，C编译有一个隐式规则。文件名决定运行哪些隐式规则。例如，C编译通常使用 *.c* 文件生成 *.o* 文件。因此，*make* 在看到这种文件名结尾组合时应用C编译的隐式规则。
+
+一系列隐式规则可以按顺序应用。例如，*make* 从一个 *.y* 文件，借助 *.c* 文件，重新制作 *.o* 文件
+
+内置的隐式规则在其配方中使用了几个变量，因此，通过更改变量的值，可以更改隐式规则的工作方式。例如，变量 `CFLAGS` 控制C编译的隐式规则下给C编译器的 标志(flags) 。
+
 您可以通过编写 _pattern rules_ 来定义自己的隐式规则。
+
 后缀规则( _suffix fules_ )是一种定义隐式规则的更有限的方法。模式规则( _pattern rules_ )更通用、更清晰，但为了兼容性保留了后缀规则。
+
 ## 10.1 使用隐式规则
 
 为了让 make 找到更新目标文件的惯用的方法，你所要做的就是不要自己指定 recipes。要么写一个没有 recipes 的规则，要么根本不写规则。
 
-如果您需要指定隐式规则无法提供的附加先决条件（例如头文件），您可能希望为foo. o编写一个没有 recipes 的规则。
+例如，假设makefile如下所示：
 
-每个隐式规则都有一个 _目标模式_ 和 _先决条件模式_ 。可能有许多具有 _相同目标模式_ 的隐式规则。例如，许多规则生成“. o”文件：一个来自带有C编译器的“.c”文件；另一个来自带有Pascal编译器的“.p”文件；等等。实际适用的规则是其先决条件存在或可以创建的规则。因此，如果您有一个文件foo.c，make将运行C编译器；否则，如果您有一个文件foo.p，make将运行Pascal编译器；等等。
+```makefile
+foo : foo.o bar.o
+    cc -o foo foo.o bar.o $(CFLAGS) $(LDFLAGS)
+```
+
+因为您提到 *foo.o* 但没有给出规则，*make* 将自动查找用于更新它的隐式规则。无论文件 *foo.o* 当前是否存在，都会发生这种情况。
+
+如果找到隐式规则，它可以同时提供配方和一个或多个先决条件（源文件）。如果您需要指定隐式规则无法提供的附加条件（例如头文件），您可能希望为 *foo.o* 编写一个没有配方的规则。
+
+
+每个隐式规则都有一个 _目标模式_(target pattern) 和 _先决条件模式_(prerequisite patterns) 。可能有许多隐式规则具有相同的 _目标模式_。例如，许多规则生成 “. o” 文件：一个来自带有C编译器的 “.c” 文件；另一个来自带有Pascal编译器的 “.p” 文件；等等。实际适用的规则是其先决条件存在或可以创建的规则。因此，如果您有一个文件 *foo.c*，make将运行C编译器；否则，如果您有一个文件 *foo.p*，make将运行Pascal编译器；等等。
+
+当然，当您编写makefile时，您知道要使用哪个隐式规则，并且您知道它会选择那个，因为您知道哪些可能的先决条件文件应该存在。有关所有预定义隐式规则的目录，请参阅 [10.2 Catalogue of Built-In Rules](https://www.gnu.org/software/make/manual/make.html#Catalogue-of-Rules)。
+
+上面，我们说如果所需的先决条件“存在或可以创建”，则隐式规则适用。如果文件在makefile中作为目标或先决条件明确提及，或者如果可以递归地找到隐式规则来创建它，则文件“可以创建”。当隐式先决条件是另一个隐式规则的结果时，我们说链接(chaining)正在发生。参见 [10.4 Chains of Implicit Rules](https://www.gnu.org/software/make/manual/make.html#Chained-Rules)。
+
+通常，*make* 会为每个没有配方的目标、每个没有配方的双冒号规则搜索一个隐式规则。一个仅作为先决条件提及的文件会被视为规则未指定任何内容的目标（target），因此会对其进行隐式规则搜索。有关如何完成搜索的详细信息，请参阅 [10.8 Implicit Rule Search Algorithm](https://www.gnu.org/software/make/manual/make.html#Implicit-Rule-Search)。
+
+请注意，显式先决条件不会影响隐式规则搜索。例如，考虑这个显式规则
+
+```makefile
+foo.o: foo.p
+```
+
+*foo.p* 上的先决条件不一定意味着 *make* 将根据从Pascal源文件(.p 文件)生成目标文件(.o 文件)的隐含规则重新生成 *foo.o*。例如，如果 *foo.c* 也存在，则使用C源文件制作目标文件的隐式规则代替，因为它出现在预定义隐式规则列表中的 Pascal 规则之前（请参阅 [10.2 Catalogue of Built-In Rules](https://www.gnu.org/software/make/manual/make.html#Catalogue-of-Rules)）。
+
+如果您不希望将隐式规则用于没有配方的目标，您可以通过编写一个分号的方式，为该目标提供一个空配方
 
 ## 10.2 内置规则目录
 
-这是一个预定义的隐式规则目录，除非makefile明确覆盖或取消它们，否则这些规则始终可用。[10.5.6 Canceling Implicit Rules](https://www.gnu.org/software/make/manual/make.html#Canceling-Rules) . `-r` 或 `--no-builtin-rules` 选项取消所有预设规则。
+这是一个预定义的隐式规则目录，除非 makefile 显式地覆盖或取消它们，否则这些规则始终可用。有关取消或覆盖隐式规则的信息，参阅 [10.5.6 Canceling Implicit Rules](https://www.gnu.org/software/make/manual/make.html#Canceling-Rules) . `-r` 或 `--no-builtin-rules` 选项取消所有预设规则。
 
-不同操作系统，如POSIX-based, VMS, Windows, OS/2等有不同的默认规则，在终端中使用 `make -p` 查看完整列表。本文档仅记录了部分基于POSIX的操作系统上可用的默认规则。
+本手册仅记录了基于 POSIX 的操作系统上可用的默认规则。其它操作系统，如 VMS, Windows, OS/2等有不同的默认规则集，在终端中使用 `make -p` 以查看您的 GNU make 版本中可用的默认规则和变量的完整列表。
+
+即使没有给出 “`-r`” 选项，这些规则也并非所有都会被定义。许多预定义的隐式规则在 *make* 中作为后缀规则实现，因此将定义哪些规则取决于*后缀列表*(suffix list)（特殊目标 `.SUFFIXES` 的先决条件列表）。默认的*后缀列表*是：`.out, .a, .ln, .o, .c, .cc, .C, .cpp, .p, .f, .F, .m, .r, .y, .l, .ym, .lm, .s, .S, .mod, .sym, .def, .h, .info, .dvi, .tex, .texinfo, .texi, .txinfo, .w, .ch .web, .sh, .elc, .el`。下面描述的所有先决条件具有这些后缀之一的隐式规则实际上都是*后缀规则*。如果修改后缀列表，唯一有效的预定义*后缀规则*将是由您指定的列表中的一个或两个后缀命名的规则；后缀不在列表中的规则将被禁用。有关*后缀规则*的完整详细信息，请参阅 [10.7 Old-Fashioned Suffix Rules](https://www.gnu.org/software/make/manual/make.html#Suffix-Rules)。
 
 **Compiling C programs**
-_n.o_ 是使用如下形式的 recipe 从 _n.c_ 自动制作的
-`$(CC) $(CPPFLAGS) $(CFLAGS) -c`
+_n.o_ 是使用如 `$(CC) $(CPPFLAGS) $(CFLAGS) -c` 形式的 recipe 从 _n.c_ 自动制作的
+
+**Compiling C++ programs**
+*n.o* 由 *n.cc*、*n.cpp* 或 *n.c* 使用形式为 `$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c`的配方自动生成。我们鼓励您对 C++ 源文件使用后缀 '.cc' 或 '.cpp'，而不是 '.c'，以更好地支持不区分大小写的文件系统。
+
+**Compiling Pascal programs**
+
+**Compiling Fortran and Ratfor programs**
+
+**Preprocessing Fortran and Ratfor programs**
+
+**Compiling Modula-2 programs**
+
+**Assembling and preprocessing assembler programs**
 
 **Linking a single object file**
-_n_ 是通过运行C编译器链接程序从 *n. o* 自动生成的。使用的精确 recipe 是 `$(CC) $(LDFLAGS) n.o $(LOADLIBES) $(LDLIBS)` 。
+_n_ 是通过运行C编译器链接程序从 *n.o* 自动生成的。使用的精确 recipe 是 `$(CC) $(LDFLAGS) n.o $(LOADLIBES) $(LDLIBS)` 。
+
+对于只有一个源文件的简单程序，此规则会做出正确的操作。如果有多个目标文件（可能来自各种其他源文件），其中一个具有与可执行文件匹配的名称，它也会做正确的操作。因此：
+
+```makefile
+x: y.o z.o
+```
+
+当 `x.c`, `y.c` `z.c` 都存在时会执行：
+
+```sh
+cc -c x.c -o x.o
+cc -c y.c -o y.o
+cc -c z.c -o z.o
+cc x.o y.o z.o -o x
+rm -f x.o
+rm -f y.o
+rm -f z.o
+```
+
+**在更复杂的情况下，例如当没有名称源自可执行文件名的目标文件时，您必须为链接编写显式配方。**
+
+每一种自动制作成 “*.o*” 目标文件的文件都将通过使用编译器（`$(CC)`、`$(FC)` 或 `$(PC)`；C编译器 `$(CC)` 用于组装 *.s* 文件）被自动链接，而不需要 `-c` 选项。这可以通过使用 “*.o*” 目标文件作为中介来完成，但是一步完成编译和链接更快，所以这就是它的完成方式。(译者注，在C语言中，一个 .c 文件要经历 编译、链接 这两个过程，当然还有预处理、汇编这两个过程，但这编译、链接都是通过同一个编译器来进行的，与其先生成 .o 再链接，不如一步完成来的更有效率)
+
+**Yacc for C programs**
+
+**Lex for C programs**
+
+**Lex for Ratfor programs**
+
+**Making Lint Libraries from C, Yacc, or Lex programs**
+
+**TeX and Web**
+
+**Texinfo and Info**
+
+**RCS**
+
+**SCCS**
+
+通常，您想更改的仅仅是上表中列出的变量，这些变量记录在下一节中。
+
+但是，内置隐式规则中的配方实际上使用了 `COMPILE.c`、`LINK.p` 和 `PREPROCESS.S` 等变量，其值包含上面列出的配方。
+
+*make* 遵循约定——编译 *.x* 源文件的规则使用变量 `COMPILE.x`。类似地，从 *.x* 文件生成可执行文件的规则使用 `LINK.x`；预处理 *.x* 文件的规则使用 `PREPROCESS.x`.。
+
+生成目标文件的每个规则都使用变量 `OUTPUT_OPTION`。*make* 将此变量定义为包含 "`-o $@`"，或者为空，具体取决于编译时的选项。您需要 “`-o`” 选项来确保当源文件位于不同目录时，输出进入正确的文件，正如使用 `VPATH` 时（请参阅 [4.5 Searching Directories for Prerequisites](https://www.gnu.org/software/make/manual/make.html#Directory-Search)）。但是，某些系统上的编译器不接受目标文件的 “`-o`” 开关。如果您使用这样的系统并使用 `VPATH`，某些编译会将其输出放在错误的位置。解决此问题的一个可能的解决方法是将 `; mv $*.o $@` 赋值给 `OUTPUT_OPTION`。
 
 ## 10.3 隐式规则所使用的变量
 
-可以更改这些变量的值。使用 `-R` 或 `--no-builtin-variables` 选项可取消隐式规则使用的所有变量。
+内置隐式规则中的配方可以自由使用某些预定义变量。您可以在 *makefile* 中更改这些变量的值，结合传递给 make 的参数，或在环境中的参数，更改隐式规则的工作方式，而无需重新定义规则本身。使用 `-R` 或 `--no-builtin-variables` 选项可取消隐式规则使用的所有变量。
 
-部分如下，在终端中使用 `make -p` 查看完整列表：
+例如，用于编译C源文件的配方实际上是 "`$(CC) -c $(CFLAGS) $(CPPFLAGS)`"。使用的变量的默认值是 "*cc*"和空值，导致命令其实是 "`cc -c`"。通过将 "*cc*" 重新定义为 "*ncc*"，您可以使 "*ncc*" 用于隐式规则执行的所有C编译。通过将 "`CFLAGS`" 重新定义为 "*-g*"，您可以将 "*-g*" 选项传递给每个编译。所有进行C编译的隐式规则都使用 "`$(CC)`"来获取编译器的程序名称，并且都在给编译器的参数中包含 "`$(CFLAGS)`"。
+
+隐式规则中使用的变量分为两类：程序名称（如`CC`）和包含程序参数的变量（如`CFLAGS`）。（“程序名称”也可能包含一些命令参数，但它必须以实际的可执行程序名称开头。）如果变量值包含多个参数，用**空格**分隔它们。
+
+下表描述了一些更常用的预定义变量。此列表并非详尽无遗，此处显示的默认值可能不是您的环境下 *make* 选择的值。要查看GNU *make* 实例的预定义变量的完整列表，您可以在没有 *makefile* 的目录中运行 `make -p`。
+
+以下是一些在内置规则中用作**程序名称**的更常见变量的表：
+
 **AS**
-编译程序集文件(assembly files)的程序；默认为"as"。
+编译汇编文件(assembly files)的程序；默认为 "*as*"。
+
 **CC**
-编译C代码的程序；默认为“cc”。
+编译 C 代码的程序；默认为 "*cc*"。
+
+**CXX**
+用于编译 C++ 程序的程序；默认为 "*g++*"。
+
+**CPP**
+运行 C 预处理器的程序，结果会传递给标准输出；默认为 "`$(CC) -E`"。
+
+**YACC**
+用于将 Yacc 语法转换为源代码的程序；默认 "*yacc*"。
+
+**LINT**
+用于在源代码上运行 lint 的程序；默认的 "*lint*"。
+
+**RM**
+删除文件的命令；默认为 "`rm -f`"。
+
+以下是变量表，其值是上述程序的附加参数。除非另有说明，否则所有这些的**默认值都是空字符串**。
+
+**ASFLAGS**
+给汇编器的额外标志（在 ".s" 或 ".S" 文件上显式调用时）。
+
 **CFLAGS**
-给C编译器的额外标志。
+给 C 编译器的额外标志。
+
+**CXXFLAGS**
+给 C++ 编译器的额外标志。
+
+**CPPFLAGS**
+提供给 C 预处理器和使用它的程序（C 和 Fortran 编译器）的额外标志。
+
 **LDFLAGS**
-当编译器应该调用链接器“ld”时，要给编译器的额外标志，例如`-L`。库（-lfoo）应该添加到 _LDLIBS_ 变量中。
+当编译器应该调用链接器 "`ld`" 时，要给编译器的额外标志，例如`-L`。然而库（*-lfoo*）应该添加到 _LDLIBS_ 变量中。
+
 **LDLIBS**
-当编译器应该调用链接器“ld”时，给编译器的库标志或名称。LOADLIBES是LDLIBS的弃用（但仍受支持）替代方案。非库链接器标志，例如-L，应该放在LDFLAGS变量中。
+当编译器应该调用链接器"`ld`"时，给编译器的库标志或名称。`LOADLIBES`已弃用（但仍受支持），替代方案是 `LDLIBS`。非库链接器标志，例如 `-L`，应该放在 `LDFLAGS` 变量中。
+
+**LINTFLAGS**
+给 lint 的额外的标志。
 
 ## 10.4 隐式规则链
 
 有时可以通过一系列隐式规则制作文件。例如，可以通过首先运行 Yacc 然后运行 cc 从 *n.y* 制作文件 *n.o* 。这样的序列称为链（*chain*）。
 
+如果文件 *n.c* 存在，或者在 *makefile* 中提到，则不需要进行特殊搜索：*make* 发现目标文件可以通过 C 编译从 *n.c* 制作；稍后，在考虑如何制作 *n.c* 时，*make* 运行 Yacc 的规则。最终更新了 *n.c* 和 *n.o*。
+
+然而，即使 *n.c* 不存在并且没有被提及，*make* 也知道如何将其设想为 *n.o* 和 *n.y* 之间缺失的链接！在这种情况下，*n.c* 被称为**中间文件**(intermediate file)。一旦 *make* 决定使用中间文件，*make* 就会像 *n.c* 在 *makefile* 中提到过一样，伴随着一个说明如何创建 *n.c* 的隐式规则，进入到数据库中。
+
+中间文件使用它们的规则重新制作，就像所有其他文件一样。但是与其它文件相比，中间文件有两种不同的处理方式。
+
+第一个不同之处是如果中间文件不存在会发生什么。如果一个普通的文件 b 不存在，并且 *make* 认为一个目标依赖于 b，则 *make* 总是创建 b，然后从 b 更新目标。但是，如果 b 是一个中间文件，那么 *make* 会直接忽视它: 除非它(译者注，我理解的这个它代指文件 b)的先决条件之一是过时的，否则 *make* 不会创建b。这意味着依赖于 b 的目标也不会被重建，除非有其他原因更新该目标: 例如目标不存在或不同的先决条件比目标更新。
+
+第二个不同之处是，如果 make 为了更新其他东西而确实创建了 b，它会在不再需要 b 后删除 b。因此，在 `make` 之前不存在的中间文件在 `make` 之后也不存在。*make* 通过打印一个 `rm` 命令向您报告删除情况，该命令显示它正在删除哪个文件。
+
+您可以通过将文件列为特殊目标 "`.INTERMEDIATE`" 的先决条件来显式地将其标记为中间文件。即使文件以其他方式显式提及，这也会生效。
+
+如果文件在 *makefile* 中作为目标或先决条件被提及，则该文件不能是中间文件，因此避免删除中间文件的一种方法是将其作为先决条件添加到某个目标。然而，这样做可能会导致 *make* 在搜索模式规则时做额外的工作（请参阅 [10.8 Implicit Rule Search Algorithm](https://www.gnu.org/software/make/manual/make.html#Implicit-Rule-Search)）。
+
+作为替代方案，列出文件作为特殊目标 “`.NOTINTERMEDIATE`” 的先决条件会迫使它不被视为中间 (就像任何其他提及文件一样)。此外，将*模式规则*的*目标模式*列为 “`.NOTINTERMEDIATE`” 的先决条件,可确保使用该*模式规则*生成的目标不会被视为中间目标。
+
+您可以通过提供 “`.NOTINTERMEDIATE`” 作为没有先决条件的目标，在 *makefile* 中完全禁用中间文件: 在这种情况下，它适用于 *makefile* 中的每个文件。
+
+如果您不希望 make 仅仅因为文件不存在而创建该文件，但也不希望 make 自动删除该文件，则可以将其标记为 **次要文件**(secondary file)。为此，将其列为特殊目标 “`.SECONDARY`” 的先决条件。将文件标记为**次要文件**也会将其标记为中间文件。
+
+一条**链**可以调用两个以上的隐式规则。例如，可以通过运行 RCS、Yacc 和 cc 从 *RCS/foo.y,v* 制作文件 *foo*。那么 *foo.y* 和 *foo.c* 都是最后删除的中间文件。
+
+没有一条隐式规则可以在**链**中出现多次。这意味着 *make* 甚至不会考虑通过运行两次链接器从 *foo.o.o* 制作 *foo* 这样荒谬的事情。这个约束还有一个额外的好处，那就是防止在搜索隐式规则链时出现任何无限循环。
+
+有一些特殊的隐式规则来优化某些情况，否则这些情况将由规则链处理。例如，*foo.c* 可以通过使用 *foo.o* 作为中间文件、使用单独的链式规则编译和链接，来制作 *foo*。但实际上发生的是，这种情况的特殊规则使用单个 cc 命令进行编译和链接。优化后的规则优先于分步链使用，因为它在规则排序中出现得更早。
+
+最后，出于性能原因，*make* 不会考虑非终端 match-anything rules（即 '`%:`') 在搜索规则以构建隐式规则的先决条件时（请参阅 [10.5.5 Match-Anything Pattern Rules](https://www.gnu.org/software/make/manual/make.html#Match_002dAnything-Rules)）。
+
 ## 10.5 定义和重定义模式规则（pattern rules）
 
-模式规则( *pattern rule* )与普通规则不同之处在于牵扯包含字符 `%` 。target 被认为是匹配文件名的模式；`%` 可以匹配任何非空子字符串。先决条件同样使用 `%` 来显示它们的名称与目标名称的关系。
-`%.o : %.c` 说明如何从另一个文件 *stem.c* 制作任何文件 *stem.o* （stem 词干）
+您可以通过编写**模式规则**来定义**隐式规则**。**模式规则**( *pattern rule* )与普通规则不同之处在于,其目标包含字符 `%` （仅有一个）。目标被认为是匹配文件名的模式；“%”可以匹配任何非空子字符串，而其他字符只能匹配它们自己。先决条件同样使用 `%` 来显示它们的名称与目标名称的关系。
 
-请注意，在模式规则中使用“%”的展开发生在任何变量或函数展开之后，这些展开发生在读取makefile时。详细见 [6 How to Use Variables](https://www.gnu.org/software/make/manual/make.html#Using-Variables) 和 [8 Functions for Transforming Text](https://www.gnu.org/software/make/manual/make.html#Functions) 。
+因此，模式规则如 `%.o : %.c` 说明如何从另一个文件 *stem.c* 制作任何文件 *stem.o* （stem 词干）
+
+请注意，在**模式规则**中使用 "`%`" 的展开发生在任何变量或函数展开**之后**，变量或函数展开发生在读取 *makefile* 时。详细见 [6 How to Use Variables](https://www.gnu.org/software/make/manual/make.html#Using-Variables) 和 [8 Functions for Transforming Text](https://www.gnu.org/software/make/manual/make.html#Functions) 。
 
 ### 10.5.1 模式规则介绍
 
-例如，‘*%.c*’ 作为模式匹配任何以'*.c*'结尾的文件名。'*s.%.c*'作为模式，匹配任何以'*s.*'开头、以'*.c*'结尾且长度至少为五个字符的文件名。（必须至少有一个字符匹配 ‘%’.) '*%*'匹配的子字符串称为词干（stem）。
+模式规则在目标中包含字符 `%`（仅有一个）；否则，它看起来与普通规则完全一样。目标是匹配文件名的模式；"`%`" 匹配任何非空子字符串，而其他字符只匹配它们自己。
 
-pattern rule 的 prerequisite 中的'*%*'代表与 target 中的'*%*'匹配的相同词干。为了应用 pattern rule，其 target pattern 必须与考虑的文件名匹配，并且其所有 prerequisites（模式替换后）必须命名存在或可以创建的文件。这些文件成为 target 的 prerequisites。
+例如，"*%.c*" 作为模式，匹配任何以 "*.c*" 结尾的文件名。"*s.%.c*" 作为模式，匹配任何以 "*s.*" 开头、以 "*.c*" 结尾且长度至少为五个字符的文件名（必须至少有一个字符匹配 "`%`".)。 "`%`" 匹配的子字符串称为词干（stem）。
 
-``` Makefile
+**模式规则**的先决条件中的 "`%`" 代表与目标中的 "`%`" 匹配的相同词干。为了**模式规则**的应用，其**目标模式**必须与考虑的文件名匹配，并且其所有先决条件（模式替换后）必须命名存在或可以创建的文件。这些文件成为目标的先决条件。
+
+因此，这样形式的规则
+
+```Makefile
 %.o : %.c ; recipe…
 ```
 
-也可能有不使用“*%*”的先决条件；这样的先决条件附加到此模式规则创建的每个文件。这些不变的先决条件偶尔很有用。
+指定如何以另一个文件 *n.c* 作为先决条件，创建文件 *n.o*，前提是 *n.c* 存在或可以创建。
 
-有一个例外：如果一个 pattern target 过期或不存在并且makefile不需要构建它，那么它不会导致其他目标被认为过期（这个历史异常将在GNU make的未来版本中被删除）。如果检测到这种情况make将生成一个警告模式配方没有更新对等目标；但是make无法检测到所有这样的情况。
+也可能有不使用 "`%`" 的先决条件；这样的先决条件附加到此**模式规则**创建的每个文件。这些不变的先决条件偶尔很有用。
+
+**模式规则**不需要任何包含 "`%`" 的先决条件，或者实际上根本不需要任何先决条件。这样的规则实际上是一个通用通配符。它提供了一种创建与**目标模式**匹配的任何文件的方法。请参阅 [10.6 Defining Last-Resort Default Rules](https://www.gnu.org/software/make/manual/make.html#Last-Resort)。
+
+可能有多个**模式规则**与同一目标匹配。在这种情况下，make将选择“最适合”规则。请参阅 [10.5.4 How Patterns Match](https://www.gnu.org/software/make/manual/make.html#Pattern-Match)。
+
+**模式规则**可能有多个目标；但是，每个目标必须包含一个 "`%`" 字符。**模式规则**中的多个目标模式始终被视为组目标（请参阅 [4.10 Multiple Targets in a Rule](https://www.gnu.org/software/make/manual/make.html#Multiple-Targets)），无论它们是否使用 `:` 或 `&:` 分隔符。
+
+有一个例外：如果一个 *模式目标* 过期或不存在并且 *makefile* 不需要构建它，那么它不会导致其他目标被认为过期（这个历史异常将在 GNU *make* 的未来版本中被删除，不要这样写你的 *makefile*）。如果检测到这种情况make将生成一个警告 "pattern recipe did not update peer target"；但是 *make* 无法检测到所有这样的情况。
+
 ### 10.5.2 模式规则举例
+
+以下是 *make* 中实际预定义的**模式规则**的一些示例。首先，将 "*.c*" 文件编译为 "*.o*" 文件的规则：
+
+```makefile
+%.o : %.c
+    $(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
+```
+
+定义一个规则，可以从 *x.c* 生成任何文件 *x.o*。该配方使用自动变量 "`$@`" 和 "`$<`" 在规则适用的每种情况下替换目标文件和源文件的名称。参阅 [10.5.3 Automatic Variables](https://www.gnu.org/software/make/manual/make.html#Automatic-Variables)
+
+这是第二个内置规则：
+
+```makefile
+% :: RCS/%,v
+    $(CO) $(COFLAGS) $<
+```
+
+定义一个规则，该规则可以从子目录RCS中的相应文件 *x,v* 生成任何文件 *x*。由于目标是 "%" ，只要存在适当的先决条件文件，此规则将适用于任何文件。双冒号是规则结束，这意味着它的先决条件可能不是中间文件。参阅 [10.5.5 Match-Anything Pattern Rules](https://www.gnu.org/software/make/manual/make.html#Match_002dAnything-Rules)。
+
+此模式规则有两个目标：
+
+```makefile
+%.tab.c %.tab.h: %.y
+    bison -d $<
+```
+
+这告诉 *make*，内容为 "`bison -d x.y`" 的配方可以制作 "*x.tab.c*" "*x.tab.h*" 这两个内容。如果文件 *foo* 依赖于 "*parse.tab.o*"、"*scan.o*" 以及 文件 "*scan.o*" 依赖于 "*parse.tab.h*"，当 "*parse.y*" 发生改变时，那么内容为 "`bison -d parse.y`" 的配方仅会被执行一次，"*parse.tab.o*" 和 "*scan.o*" 的先决条件就会被满足。（根据推测，"*parse.tab.o*" 会从 "*parse.tab.c*" 被重新编译，"*scan.o*" 会从 "*scan.c*" 被重新编译，"*foo*" 会从 "*parse.tab.o*", "*scan.o*" 和他的其它先决条件连接而来，之后它将会顺利地执行）
+
 ### 10.5.3 自动变量
 
-假设您正在编写一个模式规则，将一个“*.c*”文件编译成一个“*.o*”文件：您如何编写“*cc*”命令，以便它在正确的源文件名上运行？您不能在 recipe 中写入名称，因为每次应用隐式规则时名称都不同。您所做的是使用 make 的一个特殊功能，即自动变量(Automatic Variables)。
+假设您正在编写一个模式规则，将一个 “*.c*” 文件编译成一个 “*.o*” 文件：您如何编写 “`cc`”命令，以便它在正确的源文件名上运行？您不能在 recipe 中写入名称，因为每次应用隐式规则时名称都不同。
 
-自动变量仅在 recipe 中有效。
+您所做的是使用 make 的一个特殊功能，即自动变量(Automatic Variables)。这些变量具有根据规则的目标和先决条件为执行的每个规则重新计算的值。在此示例中，您将使用 "`$@`" 作为目标文件名，使用 "`$<`" 作为源文件名。
 
-- **$@**
+认识到自动变量值可用的范围是有限的非常重要：它们仅在配方中有值。特别是，您不能在规则的目标列表中使用它们，它们在那里没有值，并且会展开为空字符串。此外，它们不能直接在规则的先决条件列表中被访问。一个常见的错误是尝试在先决条件列表中使用 `$@`,这是行不通的。但是，GNU make有一个特殊的功能，二次扩展（请参阅 [3.9 Secondary Expansion](https://www.gnu.org/software/make/manual/make.html#Secondary-Expansion)），它将允许在先决条件列表中使用自动变量值。
+
+自动变量如下表所示：
+
+- `$@`
 	规则(rule)的目标(target)的文件名。
-	如果目标是存档成员，则`$@`是存档文件的名称。在具有多个目标的模式规则中， `$@` 是导致规则的指令(recipe)运行的目标名称。
-- **$%**
-	当目标是存档成员时，该符号表示目标成员的名称。见 [11 Using make to Update Archive Files](https://www.gnu.org/software/make/manual/make.html#Archives)
-	例如，目标是 *foo.a(bar.o)* ，则 `$%` 代表 bar.o， `$@` 是 foo.a 。
-	当目标不是存档成员时， `$%` 是空。
-- **$<**
-	第一个先决条件的名称。
-	如果目标通过隐式规则获取指令，则`%<`是通过隐式规则添加的第一个先决条件
-- **$?**
-	新于目标的所有先决条件的名称，它们之间有空格。
-	如果目标不存在，所有先决条件都将包括在内。对于作为存档成员的先决条件，仅使用命名成员（见 [11 Using make to Update Archive Files](https://www.gnu.org/software/make/manual/make.html#Archives)）。
-	`$?`即使在仅对已更改的先决条件进行操作的显式规则中也很有用。例如，假设一个名为 *lib* 的存档应该包含多个目标文件的副本。此规则仅将更改的目标文件复制到存档中：
-``` Makefile
-lib: foo.o bar.o lose.o win.o
+	如果目标是存档成员，则`$@`是存档文件的名称。在具有多个目标的模式规则（[10.5.1 Introduction to Pattern Rules](https://www.gnu.org/software/make/manual/make.html#Pattern-Intro)）中， `$@` 是导致规则的配方(recipe)运行的目标名称。
+- `$%`
+	当目标是存档成员时，该符号表示目标成员的名称。见 [11 Using make to Update Archive Files](https://www.gnu.org/software/make/manual/make.html#Archives)。	例如，目标是 *foo.a(bar.o)* ，则 `$%` 代表 bar.o， `$@` 是 foo.a 。	当目标不是存档成员时， `$%` 是空。
+- `$<`
+	第一个先决条件的名称。如果目标通过隐式规则获取指令，则`%<`是通过隐式规则（参阅 [10 Using Implicit Rules](https://www.gnu.org/software/make/manual/make.html#Implicit-Rules)）添加的第一个先决条件。
+
+- `$?`
+	新于目标的所有先决条件的名称，它们之间有空格。如果目标不存在，所有先决条件都将包括在内。当先决条件是存档成员时，仅使用命名成员（见 [11 Using make to Update Archive Files](https://www.gnu.org/software/make/manual/make.html#Archives)）。
+	当想仅对已更改的先决条件进行操作时，`$?`即使在显式规则中也很有用。例如，假设一个名为 *lib* 的存档应该包含多个目标文件的副本。此规则仅将更改的目标文件复制到存档中：
+    ```makefile
+    lib: foo.o bar.o lose.o win.o
         ar r lib $?
-```
+    ```
+
 - `$^`
 	所有先决条件的名称，它们之间有空格。
-	对于作为存档成员的先决条件，只使用命名成员（见 [11 Using make to Update Archive Files](https://www.gnu.org/software/make/manual/make.html#Archives)）。无论每个文件作为先决条件列出多少次，一个目标在它所依赖的每个文件上只有一个先决条件。因此，如果您多次列出目标的先决条件，`$^`的值只包含名称的一个副本。此列表不包含任何仅顺序的先决条件；对于这些，请参阅下面的`$|`变量。
+	当先决条件是存档成员时，只使用被指名的成员（见 [11 Using make to Update Archive Files](https://www.gnu.org/software/make/manual/make.html#Archives)）。无论每个文件作为先决条件列出多少次，一个目标在它所依赖的每个文件上只有一个先决条件。因此，如果您多次列出目标的先决条件，`$^` 的值只包含该名称的一个副本。此列表不包含任何*仅声明顺序的先决条件*(order-only prerequisites)；对于这些先决条件，请参阅下面的 `$|` 变量。
 - `$+`
-	这就像`$^`, 但是列出多次的先决条件会按照它们在makefile中列出的顺序重复。这主要用于链接命令，在这些命令中以特定顺序重复库文件名是有意义的。
+	这就像 `$^`, 但是列出多次的先决条件会按照它们在 *makefile* 中列出的顺序重复。这主要用于链接命令，在这些命令中以特定顺序重复库文件名是有意义的。
 - `$|`
-	所有仅顺序的先决条件的名称，它们之间带有空格。
+	所有*仅声明顺序的先决条件*(order-only prerequisites)的名称，它们之间带有空格。
 - `$*`
-	隐式规则匹配的词干（请参阅 [10.5.4 How Patterns Match](https://www.gnu.org/software/make/manual/make.html#Pattern-Match)）。
-	在显式规则中，没有词干；因此不能以这种方式确定`$*`。相反，如果目标名称以可识别的后缀结尾（参见 [10.7 Old-Fashioned Suffix Rules](https://www.gnu.org/software/make/manual/make.html#Suffix-Rules)), 则 `$*` 被设置为目标名称减去后缀。例如，如果目标名称是“foo. c”，则将`$*`设置为“foo”，因为“.c”是后缀。GNU make做这个奇怪的事情只是为了与make的其他实现兼容。
-	除了在隐式规则或静态模式规则中，您通常应该避免使用`$*`。
-	如果显式规则中的目标名称不以可识别的后缀结尾, `$*` 则设置为该规则的空字符串。
+	隐式规则匹配的词干（请参阅 [10.5.4 How Patterns Match](https://www.gnu.org/software/make/manual/make.html#Pattern-Match)）。如果目标是`dir/a.foo.b`，目标模式是 `a.%.b`，则词干是 `dir/foo`。词干对于构建相关文件的名称很有用。
+    在静态模式规则(static pattern rule)中，词干是在目标模式(target pattern)中与“`%`”匹配的文件名的一部分。
+	在显式规则中，没有词干；因此不能以这种方式确定`$*`。相反，如果目标名称以可识别的后缀结尾（参见 [10.7 Old-Fashioned Suffix Rules](https://www.gnu.org/software/make/manual/make.html#Suffix-Rules), 则 `$*` 被设置为目标名称减去后缀。例如，如果目标名称是 “foo. c”，则将`$*`设置为 “foo”，因为 “.c” 是后缀。GNU make 做这个奇怪的事情只是为了与make的其他实现兼容。**除了在隐式规则或静态模式规则中，您通常应该避免使用** `$*`。
+	如果显式规则中的目标名称不以可识别的后缀结尾, 则在该规则中 `$*` 被设置为空字符串。
 
-在上面列出的变量中，四个具有单个文件名的值，三个具有文件名列表的值。这七个变量的变体仅获取文件的目录名或目录中的文件名。变体变量的名称分别由附加“D”或“F”组成。函数dir和notdir可用于获得类似的效果（参见 [8.3 Functions for File Names](https://www.gnu.org/software/make/manual/make.html#File-Name-Functions)）。但是请注意，“D”变体都省略了总是出现在dir函数输出中的尾随斜杠。
+在上面列出的变量中，四个具有单个文件名的值，三个具有文件名列表的值。这七个变量具有变体，这些变体可以仅获取文件的目录名或目录中的文件名。变体变量的名称分别由附加 “D” 或 “F” 组成。函数 `dir` 和 `notdir` 可用于获得类似的效果（参见 [8.3 Functions for File Names](https://www.gnu.org/software/make/manual/make.html#File-Name-Functions)）。但是请注意，“D”变体都省略了总是出现在 `dir` 函数输出中的尾随斜杠。
+
 - `$(@D)`
-	目标文件名的目录部分，删除了尾随斜杠。如果`$@`的值是 dir/foo. o，则`$(@D)`是 dir。这个值是 `.` 如果`$@`不包含斜杠。
+	目标文件名的目录部分，删除了尾随斜杠。如果 `$@`的值是 *dir/foo.o*，则 `$(@D)` 是 *dir*。如果`$@`不包含斜杠，则这个值是 `.` 。
+
 - `$(@F)`
-	目标文件名的“目录内文件“部分。如果`$@`的值是 dir/foo. o，则 `$(@F)` 是 foo.o。`$(@F)` 等价于`$(notdir $@)` 。
+	目标文件名的“目录内文件“部分。如果 `$@` 的值是 *dir/foo.o*，则 `$(@F)` 是 *foo.o*。`$(@F)` 等价于`$(notdir $@)` 。
+
 - `$(*D)` <br> `$(*F)`
-	词干的目录部分和“目录内文件“部分；在本例中分别对应 dir 和 foo。
+	词干的目录部分和“目录内文件“部分；在本例中分别对应 *dir* 和 *foo*。
+
 - `$(%D)`  <br> `$(%F)`
-	目标存档成员名称的目录部分和“目录内文件“部分。这仅对存档（成员）形式的存档成员目标有意义，并且仅在成员可能包含目录名时有用。（请参阅 [11.1 Archive Members as Targets](https://www.gnu.org/software/make/manual/make.html#Archive-Members)）
+	目标存档成员名称的目录部分和“目录内文件“部分。这仅对 `archive(member)` 形式的存档成员目标有意义，并且仅在 `member` 可能包含目录名时有用。（请参阅 [11.1 Archive Members as Targets](https://www.gnu.org/software/make/manual/make.html#Archive-Members)）
+
 - `$(<D)` <br> `$(<F)`
 	第一个先决条件的目录部分和“目录内文件“部分。
+
 - `$(^D)` <br> `$(^F)`
 	所有先决条件的目录部分和“目录内文件“部分的列表。
+
 - `$(+D)` <br> `$(+F)`
 	所有先决条件的目录部分和“目录内文件“部分的列表，包括重复先决条件的多个实例。
+
 - `$(?D)` <br> `$(?F)`
 	新于目标的所有先决条件的目录部分和“目录内文件“部分的列表。
 
-`$<` 指的是名为`<`的变量，就像`$(CFLAGS)`”指的是名为`CFLAGS`的变量一样。也可以用 `$(<)` 代替`$<`。
+请注意，当我们谈论这些自动变量时，我们使用了一种特殊的风格约定；我们写 “`$<` 的值”，而不是 “变量`<`”，就像我们为 `objects` 和 `CFLAGS` 等普通变量写的那样。我们认为这种约定在这种特殊情况下看起来更自然。请不要假设它有很深的意义;`$<` 引用的是名为 `<` 的变量，就像 `$(CFLAGS)` 引用的是名为 `CFLAGS` 的变量一样。也可以用 `$(<)` 代替 `$<`。
 
 ### 10.5.4 模式(pattern)匹配的方式
+
+目标模式由前缀、"`%`" 和后缀组成，前缀和后缀其中一个或两个可以为空。只有当文件名以前缀开头并以后缀结尾，且前后缀不会重叠时，模式才会匹配文件名。前缀和后缀之间的文本称为词干。因此，当模式 "*%.o*" 与文件名 *test.o* 匹配时，词干就是 "*test*"。模式规则的先决条件通过将字符 "`%`" 替换为词干，变成实际的文件名。因此，如果在同一示例中，其中一个先决条件写成 "*%.c*"，它将扩展为 "*test.c*"。
+
+当目标模式不包含斜杠（通常不包含）时，文件名中的目录名在与目标前缀和后缀进行比较之前从文件名中删除。在将文件名与目标模式进行比较之后，目录名以及结束它们的斜杠，被添加到从模式规则的先决条件模式和文件名生成的先决条件文件名中。这些目录被忽略，只是为了找到非该规则被应用时的要使用的隐式规则。因此，"`e%t`" 与文件名 "*src/eat*" 匹配，"*src/a*" 会作为词干。当先决条件转换为文件名时，词干中的目录被添加到前面，而词干的其余部分被替换为 "`%`"。带有先决条件模式 "*c%r*" 的词干 "*src/a*" 给出了文件名 *src/car*。
+
+只有当存在与文件名匹配的目标模式时，模式规则才能用于构建给定文件，并且该规则中的所有先决条件要么存在，要么可以被构建。您编写的规则优先于内置规则。但是请注意，无需链接其他隐式规则（例如，没有先决条件或其先决条件已经存在或被提及的规则）即可满足的规则总是优先于必须通过链接其他隐式规则来创建先决条件的规则。
+
+可能有多个模式规则符合这些条件。在这种情况下，*make* 将选择具有**最短词干**的规则（即最具体匹配的模式）。如果多个模式规则具有最短词干，*make* 将选择在 *makefile* 中找到的第一个。
+
+该算法导致更具体的规则优于更通用的规则；例如：
+
+```makefile
+%.o: %.c
+    $(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
+
+%.o : %.f
+    $(COMPILE.F) $(OUTPUT_OPTION) $<
+
+lib/%.o: lib/%.c
+    $(CC) -fPIC -c $(CFLAGS) $(CPPFLAGS) $< -o $@
+```
+
+给定这些规则并要求在 *bar.c* 和 *bar.f* 都存在的情况下构建 *bar.o*，*make* 将选择第一个规则并将 *bar.c* 编译为 *bar.o*。在 *bar.c* 不存在的相同情况下，*make* 将选择第二个规则并将 *bar.f* 编译为 *bar.o*。
+
+如果 *make* 被要求构建 *lib/bar.o* 并且 *lib/bar.c* 和 *lib/bar.f* 都存在，则将选择第三条规则，因为该规则的词干（"*bar*"）比第一条规则的词干（"*lib/bar*"）短。如果 *lib/bar.c* 不存在，则第三条规则不符合条件，将使用第二条规则，即使词干较长。
+
+### 10.5.5 Match-Anything 的模式规则
+
+当**模式规则**的目标只是 "`%`" 时，它匹配任何文件名。我们称这些规则为 *match-anything* 规则。它们非常有用，但是 *make* 可能需要很多时间来考虑它们，因为它必须考虑这样的每个文件名的每个规则，是作为目标列出，还是作为先决条件列出。
+
+假设 makefile 提到 *foo.c*。对于这个目标，make 必须考虑，是通过链接目标文件 *foo.c.o*，还是通过 C 一步完成编译并链接 *foo.c.c*，或者通过 Pascal  一步完成编译并链接 *foo.c.p* 以及许多其他可能性，来实现此文件。
+
+我们知道这些可能性是荒谬的，因为 *foo.c* 是C源文件，而不是可执行文件。如果 *make* 确实考虑了这些可能性，它最终会拒绝它们，因为像 *foo.c.o* 和 *foo.c.p* 这样的文件不存在。但是这些可能性太多了，如果必须考虑它们，*make* 会运行得非常慢。
+
+为了提高速度，我们在 make 考虑 *match-anything* 规则的方式上设置了各种约束。可以应用两种不同的约束，__每次定义 *match-anything* 规则时，您都必须为该规则选择两个限制其中之一__。
+
+一种选择是通过用双冒号定义 *match-anything* 规则来将其标记为终结规则(terminal)。当规则是终结规则时，除非其先决条件确实存在，否则它不应用。可以用其他隐式规则创建的先决条件也不行。换句话说，不允许在终结规则之外进行进一步的链接。
+
+例如，从 RCS 和 SCCS 文件中提取源的内置隐式规则是终结规则；因此，如果文件 *foo.c,v* 不存在，*make* 甚至不会考虑尝试将其作为来自 *foo.c,v.o* 或 *RCS/SCCS/s.foo.c,v* 的中间文件。RCS 和 SCCS 文件通常是最终源文件，不应该从任何其他文件中重制；因此，*make* 可以通过不寻找重制它们的方法来节省时间。
+
+如果未将 *match-anything* 规则标记为终结规则，则该规则是非终结规则。非终结 *match-anything* 规则不能应用于隐式规则的先决条件，也不能应用于指示特定数据类型的文件名。如果某个非 *match-anything* 的隐式规则目标与文件名匹配，则文件名指示特定类型的数据。
+
+例如，文件名 *foo.c* 与模式规则 "`%.c : %.y`"（运行 Yacc 的规则）的目标相匹配。无论该规则是否实际适用（仅当有文件 *foo.y* 时才会发生），其目标匹配的事实足以防止考虑文件 foo.c 的任何非终端 *match-anything* 规则。因此，make 甚至不会考虑尝试将 foo.c 设为 *foo.c.o*, *foo.c.c*, *foo.c.p* 等的可执行文件。
+
+这种约束的动机是，非终端 *match-anything* 规则用于制作包含特定类型数据（例如可执行文件）的文件，并且具有可识别后缀的文件名表示其他特定类型的数据（例如C源文件）。
+
+提供特殊的内置虚拟(dummy)*模式规则*仅用于识别某些文件名，因此不会考虑非终端 *match-anything* 规则。这些虚拟规则没有先决条件，也没有配方，并且出于所有其他目的都会被忽略。例如，内置的隐式规则
+
+```makeifle
+%.p :
+```
+
+存在是为了确保 Pascal 源文件（例如foo. p）匹配特定的目标模式，从而防止浪费时间寻找 *foo.p.o* 或 *foo.p.c*。
+
+为列出为有效的每个后缀创建虚拟模式规则，例如 "`%.p`"的规则，以便在后缀规则中使用。（请参阅 [10.7 Old-Fashioned Suffix Rules](https://www.gnu.org/software/make/manual/make.html#Suffix-Rules)）。
+
+
 ### 10.5.6 取消隐式规则
 
-您可以通过定义具有相同 _target_ 和 _prerequisites_ 但不同 _recipe_ 的新 _pattern rule_ 来覆盖内置隐式规则（或您自己定义的规则）。定义新规则时，将替换内置规则。
+您可以通过定义具有相同目标和先决条件但配方不同的新**模式规则**来覆盖内置隐式规则（或您自己定义的规则）。定义新规则时，将替换内置规则。新规则在隐式规则序列中的位置取决于您编写新规则的位置。
 
-例如，以下将取消运行汇编器的规则：
+您可以通过定义具有相同目标和先决条件但没有配方的模式规则来取消内置隐式规则。例如，以下操作将取消运行汇编器的规则：
+
 ``` Makefile
 %.o : %.s
 ```
 
+## 10.6 定义 Last-Resort Default 规则
+
+您可以通过编写没有先决条件的终端(terminal) *match-anything pattern rule* 来定义 *last-resort implicit rule*（请参阅 [10.5.5 Match-Anything Pattern Rules](https://www.gnu.org/software/make/manual/make.html#Match_002dAnything-Rules)）。这就像任何其他**模式规则**一样；它唯一的特别之处在于它将匹配任何目标。因此，这样一个规则的配方用于所有没有自己的配方并且没有其他隐式规则适用的目标和先决条件。
+
+例如，在测试 makefile 时，您可能不关心源文件是否包含真实数据，只关心它们是否存在。然后你可能会这样做：
+
+```makefile
+%::
+    touch $@
+```
+
+以自动创建所需的所有源文件 (作为先决条件)。
+
+或者，您可以定义一个配方，用于根本没有规则的目标，甚至没有指定配方的目标。您可以通过为目标 “`.DEFAULT`” 编写规则来做到这一点。这样的规则配方用于在任何显式规则中不作为目标出现的所有先决条件，并且没有隐式规则适用。自然地，除非您编写一个，否则没有 `.DEFAULT` 规则。
+
+如果使用 “`.DEFAULT`” 而没有配方或先决条件:
+
+```makefile
+.DEFAULT:
+```
+
+之前为 `.DEFAULT` 存储的配方被清除。然后 *make* 像从未定义过 `.DEFAULT` 一样进行操作。
+
+如果您不希望目标从 *match-anything pattern rule* 或 `.DEFAULT` 获取配方，但您也不希望为该目标运行任何配方，您可以给它一个空配方（请参阅 [5.9 Using Empty Recipes](https://www.gnu.org/software/make/manual/make.html#Empty-Recipes)）。
+
+您可以使用 *last-resort* 规则覆盖另一个 makefile 的一部分。请参阅 [3.6 Overriding Part of Another Makefile](https://www.gnu.org/software/make/manual/make.html#Overriding-Makefiles)。
+
+## 10.7 过时的后缀规则
+
+**后缀规则**(Suffix rules)是 make 定义隐式规则的老式方法。后缀规则已经过时，因为**模式规则**更通用、更清晰。GNU make 支持它们，以便与旧 makefile 兼容。它们有两种：双后缀和单后缀。
+
+双后缀规则由一对后缀定义：目标后缀和源后缀。它匹配名称以目标后缀结尾的任何文件。相应的隐式先决条件是通过将文件名中的目标后缀替换为源后缀来实现的。具有两个后缀的规则 "`.c.o`"（其目标和源后缀是 “.o” 和 “.c”）等价于模式规则 "`%.o : %.c`"。
+
+单后缀规则由单后缀定义，即源后缀。它匹配任何文件名，通过附加源后缀来制作相应的隐式先决条件名称。源后缀为 '.c' 的单后缀规则等价于模式规则 "`% : %.c`"。
+
+通过将每个规则的目标与已定义的已知后缀列表进行比较的方式，来识别后缀规则定义。当 make 看到规则的目标是已知后缀时，该规则被视为单后缀规则。当 make 看到规则的目标是两个已知后缀连接的规则时，该规则被视为双后缀规则。
+
+例如，“.c” 和 “.o” 都在已知后缀的默认列表中。因此，如果您定义了一个目标为 “`.c.o`” 的规则，make 将其视为具有源后缀 “.c” 和目标后缀 “.o” 的双后缀规则。这是定义编译C源文件规则的过时的方法：
+
+```makefile
+.c.o:
+    $(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
+```
+
+后缀规则不能有任何自己的先决条件。如果有，它们被视为具有滑稽名称的普通文件，而不是后缀规则。因此，规则：
+
+```makefile
+.c.o: foo.h
+    $(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
+```
+
+告诉 make 如何从先决条件文件 *foo.h* 制作文件 *.c.o*，一点也不像模式规则：
+
+```makefile
+%.o: %.c foo.h
+        $(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
+```
+
+它告诉 make 如何从 “.c” 文件制作 “.o” 文件，并使用此模式规则制作所有 “.o” 文件也依赖于文件 *foo.h*。
+
+没有配方的后缀规则也没有意义。它们不会像没有配方的模式规则那样删除以前的规则（请参阅 [10.5.6 Canceling Implicit Rules](https://www.gnu.org/software/make/manual/make.html#Canceling-Rules )）。它们只是在数据库中输入作为目标连接的后缀或后缀对。
+
+已知后缀只是特殊目标 `.SUFFIXES` 的先决条件的名称。您可以通过给 `.SUFFIXES` 编写规则，添加更多先决条件，来添加自己的后缀，如：
+
+```makefile
+.SUFFIXES: .hack .win
+```
+
+它将 “.hack” 和 “.win” 添加到后缀列表的末尾。
+
+如果您希望消除默认已知后缀，而不仅仅是添加后缀，请为 `.SUFFIXES` 编写没有先决条件的规则。通过特殊豁免，这消除了 `.SUFFIXES` 的所有现有先决条件。然后，您可以编写另一个规则来添加所需的后缀。例如，
+
+```makefile
+.SUFFIXES:            # Delete the default suffixes
+.SUFFIXES: .c .o .h   # Define our suffix list
+```
+
+'`-r`' 或 '`--no-builtin-rules`'标志会导致默认后缀列表为空。
+
+在 make 读取任何 makefile 之前，变量 `SUFFIXES` 被定义到默认后缀列表中。您可以使用特殊目标 `.SUFFIXES` 的规则更改后缀列表，但这不会改变此变量。
+
+## 10.8 隐式规则搜索算法
+
+下面是 *make* 搜索目标 *t* 的隐式规则的过程。对于每个没有配方的双冒号规则、没有配方的普通规则的每个目标，以及不是任何规则的目标的每个先决条件，都遵循这个过程。在搜索规则链时，对于来自隐式规则的先决条件，它也递归地遵循。
+
+此算法中没有提到后缀规则，因为一旦读取了 makefile，后缀规则就会转换为等效的模式规则。
+
+对于格式为 "*archive(member)*" 的存档成员目标，以下算法会运行两次，首先使用整个目标名称 *t*，如果第一次运行未发现规则，则第二次使用 "*(member)*" 作为目标 *t*。
+
+1. 将 *t* 拆分为一个目录部分，称为 *d*，其余部分称为 *n*。例如，如果 *t* 是 'src/foo.o'，则 *d* 是 'src/'，*n* 是 'foo.o'。
+
+2. 列出其中一个目标与 *t* 或 *n* 匹配的所有模式规则。如果目标模式包含斜杠，则与 *t* 匹配；否则与 *n* 匹配。
+
+3. 如果该列表中的任何规则都不是 *match-anything* 规则，或者如果 *t* 是隐式规则的先决条件，则从列表中删除所有 *non-terminal match-anything* 规则。
+
+4. 从列表中删除所有没有配方的规则。
+
+5. 对于列表中的每个模式规则：
+
+    1. 找到词干 *s*，它是 *t* 或 *n* 与目标模式中的 `%` 匹配的非空部分，。
+    2. 通过用 *s* 替换为 `%` 来计算先决条件名称；如果目标模式不包含斜杠，则将 *d* 附加到每个先决条件名称的前面。
+    3. 测试所有先决条件是否存在或应该存在。（如果文件名在 makefile 中作为目标被提及，或作为目标 *T* 的显式先决条件提及，那么我们说它应该存在。）
+    如果所有先决条件都存在或应该存在，或者没有先决条件，则适用此规则。 
+
+6. 如果到目前为止还没有找到模式规则，请进一步寻找。对于列表中的每个模式规则：
+
+    1. 如果规则是最终规则(terminal)，则忽略它并继续下一个规则。
+    2. 像以前一样计算先决条件名称。
+    3. 测试所有先决条件是否存在或应该存在。
+    4. 对于每个不存在的先决条件，递归地遵循此算法，以查看是否可以通过隐式规则创建先决条件。
+    5. 如果所有先决条件都存在、应该存在或可以由隐式规则制定，则此规则适用。 
+
+7. 如果没有找到模式规则，则修改“应该存在”的定义：如果文件名作为目标被提及、或作为任何目标的显式先决条件被提及，那么它“应该存在”，并再次尝试步骤5和步骤6。此检查仅用于与旧版 GNU make 的向后兼容性: 我们不建议依赖它。
+
+8. 如果没有隐式规则适用，则`.DEFAULT`的规则（如果有）适用。在这种情况下，向 *t* 给出与 `.DEFAULT` 相同的配方。否则，*t* 没有配方。
+
+一旦找到适用的规则，对于该规则的每个目标模式(而不是匹配 *t* 或 *n* 的模式)，模式中的 "`%`" 被替换为 *s*，并存储结果文件名，直到重新制作目标文件 *t* 的配方被执行。配方执行后，这些存储的文件名中的每一个都被输入数据库，并标记为已更新并具有与文件 *t* 相同的更新状态。
+
+当对 *t* 执行模式规则的配方时，自动变量被设置为对应于目标和先决条件。参阅 [10.5.3 Automatic Variables](https://www.gnu.org/software/make/manual/make.html#Automatic-Variables)
+
 # 11 Using `make` to Update Archive Files
+
 存档文件(_Archive files_)是包含称为成员的命名子文件的文件；它们由程序 *ar* 维护，它们的主要用途是作为链接的子程序库。
+
 ## 11.1 Archive Members as Targets
+
 存档文件的单个成员可以用作make中的目标或先决条件。您在存档文件*archinve*中指定名为*member*的成员，如下所示：
+
 ``` Makefile
 archive(member)
 ```
+
 此构造仅在目标和先决条件中可用，而在指令中不可用！只有 *ar* 和其他专门为档案操作而设计的程序才能这样做。因此，更新存档成员目标的有效指令必须使用 *ar* 。例如，此规则说通过复制文件 hack. o 在存档 foolib 中创建成员 hack.o：
+
 ``` Makefile
 foolib(hack.o) : hack.o
-		ar cr foolib hack.o
+	ar cr foolib hack.o
 ```
 
 事实上，几乎所有存档成员目标都是以这种方式更新的，并且有一个隐式规则可以为您执行此操作。请注意：如果存档文件不存在，则需要 *ar* 的“c”标志。
 
 要在同一个存档中指定多个成员，您可以将所有成员名称一起写在括号之间。例如：
+
+
 ``` Makefile
 foolib(hack.o kludge.o)
 ```
+
 等价于
+
 ``` Makefile
 foolib(hack.o) foolib(kludge.o)
 ```
 
-您还可以在存档成员引用中使用shell样式的通配符。请参阅 [4.4 Using Wildcard Characters in File Names](https://www.gnu.org/software/make/manual/make.html#Wildcards)。例如，`foolib(*.o)` 展开到名称以“.o”结尾的 foolib 存档的所有现有成员；也许是 `foolib(hack.o) foolib(kludge.o)` 。
-## 11.2 Implicit Rule for Archive Member Targets
-
-
-## 11.3 Dangers When Using Archives
-
-## 11.4 Suffix Rules for Archive Files
-
-# 12 Extending GNU `make`
+您还可以在存档成员引用中使用 shell 样式的通配符。请参阅 [4.4 Using Wildcard Characters in File Names](https://www.gnu.org/software/make/manual/make.html#Wildcards)。例如，`foolib(*.o)` 展开到名称以“.o”结尾的 foolib 存档的所有现有成员；也许是 `foolib(hack.o) foolib(kludge.o)` 。
