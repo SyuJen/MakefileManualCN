@@ -53,10 +53,25 @@ target ... : prerquisited ...
     ...
     ...
 ```
+目标(target)通常是程序生成的文件的名称；目标可以是可执行文件或目标文件。目标也可以是要执行的操作的名称，例如“clean”，参见 [4.6 Phony Targets](https://www.gnu.org/software/make/manual/make.html#Phony-Targets)
 
-`target`通常是由程序生成的文件的名称，或要执行的操作的名称，例如 'clean'。
-`prerequisites`是用作创建目标的输入的文件。
-`recipe`是使 `make` 执行的动作，（译者注：在本文中将 recipe 翻译为配方，之前想将其翻译为“指令”，但和 directive 的翻译会发生重合。由于文档内容较多，校对复杂，部分位置还是保留了将 recipe 翻译为 指令 的） 。注意：需要在每个`recipe`行的开头放置一个制表符！
+先决条件(prerequisites)是用作创建目标的输入的文件。一个目标通常依赖于多个文件。
+
+配方(recipe)是使执行的操作。一个配方可能有多个命令，要么在同一行，要么每个命令在自己的行。**请注意**：您需要在每个配方行的开头放置一个制表符！这是一个引起粗心的模糊。如果您更喜欢用制表符以外的字符作为配方的前缀，您可以将 `.RECIPEPREFIX` 变量设置为备用字符（请参阅 [6.14 Other Special Variables](https://www.gnu.org/software/make/manual/make.html#Special-Variables)）。
+
+（译者注：在本文中将 recipe 翻译为配方，之前想将其翻译为“指令”，但和 directive 的翻译会发生重合。由于文档内容较多，校对复杂，部分位置还是保留了将 recipe 翻译为 指令 的）。
+
+通常，配方位于具有先决条件的规则中，如果任何先决条件发生更改，则用于创建目标文件。但是，为目标指定配方的规则不需要具有先决条件。例如，包含与目标 “clean” 关联的删除命令的规则没有先决条件。
+
+然后，规则解释了如何以及何时重新制作特定文件，这个文件就是特定规则的目标。*make* 在先决条件上执行配方，来创建或更新目标。规则还可以解释如何以及何时执行操作。请参阅 [4 Writing Rules](https://www.gnu.org/software/make/manual/make.html#Rules)。
+
+makefile 可能包含除规则之外的其他文本，但简单的 makefile 只需要包含规则。规则可能看起来比此模板中显示的要复杂一些，但都或多或少地符合模式。
+
+## 2.2 一个简单的 Makefile
+
+这是一个简单的 makefile，它描述了一个名为 edit 的可执行文件依赖于八个目标文件，而这些目标文件又依赖于八个C源文件和三个头文件。
+
+在此示例中，所有 C 文件都包含 *defs.h*，但只有那些定义编辑命令的文件才包括 *command.h*，只有更改编辑器缓冲区的低级文件才包括 *buffer.h*。
 
 示例：
 ```makefile
@@ -86,48 +101,64 @@ clean :
            insert.o search.o files.o utils.o
 ```
 
-在示例中，'clean'不是其它rule的prerequisite，所以 `make` 不会在未指定的情况下执行clean。这种不引用文件但只是动作的target称为虚假目标（_phony targets_）。
-另外，它也不含prerequisites。
+我们使用反斜杠/换行符将每个长行分成两行；这就像使用一条长线，但更容易阅读。参阅 [3.1.1 Splitting Long Lines](https://www.gnu.org/software/make/manual/make.html#Splitting-Lines)。
 
-## 2.3 make执行Makefle的过程
+要使用此 makefile 创建名为 edit 的可执行文件，请键入(译者注，在终端里键入)：
 
-默认情况下，make从第一个target开始（不是名称以“.”开头的target，除非它们还包含一个或多个 ‘/’)。这称为默认目标（_default goal_）。
-在示例中，此rule用于重新链接 _edit_ ；但是在 make 可以完全处理此rule之前，它必须处理 _edit_ 所依赖的文件的 rule。
-
-处理其他 rule 是因为它们的 target 为 goal 的先决条件。如果goal不依赖其他rule（或goal所依赖的任何东西等），则不处理该规则，除非您告诉make这样做。就像 make clean 一样。
-
-和 edit 相关的文件有更新或修改后，执行make时会自动 relink
-
-## 2.4 变量
-
-[How to Use Variables](https://www.gnu.org/software/make/manual/make.html#Using-Variables)
-
-示例：
-```makefile
-objects = main.o kbd.o command.o display.o \
-          insert.o search.o files.o utils.o
-
-edit : $(objects)
-        cc -o edit $(objects)
-main.o : main.c defs.h
-        cc -c main.c
-kbd.o : kbd.c defs.h command.h
-        cc -c kbd.c
-command.o : command.c defs.h command.h
-        cc -c command.c
-display.o : display.c defs.h buffer.h
-        cc -c display.c
-insert.o : insert.c defs.h buffer.h
-        cc -c insert.c
-search.o : search.c defs.h buffer.h
-        cc -c search.c
-files.o : files.c defs.h buffer.h command.h
-        cc -c files.c
-utils.o : utils.c defs.h
-        cc -c utils.c
-clean :
-        rm edit $(objects)
+```sh
+make
 ```
+
+要使用此 makefile 从目录中删除可执行文件和所有目标文件，请键入：
+
+```sh
+make clean
+```
+
+在示例 makefile 中，目标包括可执行文件 “edit”，以及目标文件 “main.o” 和 “kbd.o”。先决条件是诸如 “main.c” 和 “defs.h” 之类的文件。事实上，每个 “.o” 文件既是目标又是先决条件。配方包括 “`cc -c main.c`” 和 “`cc -c kbd.c`”。
+
+当目标是文件时，如果其任何先决条件发生更改，则需要重新编译或重新链接它。此外，应首先更新本身自动生成的任何先决条件。在此示例中，edit 依赖于八个目标文件中的每一个; 目标文件 main.o 依赖于源文件 main.c 和头文件 defs.h。
+
+配方会跟在包含目标和先决条件的每一行之后的行。这些配方说明了如何更新目标文件。制表符（或变量 `.RECIPEPREFIX` 指定的任何字符；请参阅 [6.14 Other Special Variables](https://www.gnu.org/software/make/manual/make.html#Special-Variables)）必须出现在配方中每一行的开头，以将配方与 makefile 中的其他行区分开来。（请记住，make 对配方的工作原理一无所知。由您提供将正确更新目标文件的配方。make 所做的就是在需要更新目标文件时执行您指定的配方。）
+
+目标 “clean” 不是一个文件，而仅仅是一个操作的名称。由于您通常不想执行此规则中的操作，因此 “clean” 不是任何其他规则的先决条件。因此，除非您明确告诉它，否则 make 永远不会对它做任何事情。请注意，此规则不仅不是先决条件，它也没有任何先决条件，因此该规则的唯一目的是运行指定的配方。不引用文件而只是操作的目标称为*伪目标*。有关此类目标的信息，请参阅 [4.6 Phony Targets](https://www.gnu.org/software/make/manual/make.html#Phony-Targets)。请参阅 [5.5 Errors in Recipes](https://www.gnu.org/software/make/manual/make.html#Errors)，了解如何使make 忽略来自 rm 或任何其他命令的错误。
+
+## 2.3 make 执行 Makefle 的过程
+
+默认情况下，make 从第一个 target 开始（不是名称以“.”开头的 target，除非它们还包含一个或多个 ‘/’）。这称为默认终点目标（_default goal_）。（终点目标是 make 努力最终更新的目标。您可以使用命令行（请参阅 [9.2 Arguments to Specify the Goals](https://www.gnu.org/software/make/manual/make.html#Goals)）或使用 `.DEFAULT_GOAL` 特殊变量（请参阅 [6.14 Other Special Variables](https://www.gnu.org/software/make/manual/make.html#Special-Variables)）覆盖此行为。）
+
+在上一节的简单示例中，默认终点目标是更新可执行程序 edit；因此，我们将该规则放在首位。
+
+因此，当您发出如下的命令时：
+
+```sh
+make
+```
+
+make 读取当前目录中的 makefile 并从处理第一条规则开始。在示例中，此规则用于重新链接 edit；但是在 make 可以完全处理此规则之前，它必须处理 edit 所依赖的文件(在本例中是目标文件)的规则。这些目标文件中的每一个都根据自己的规则进行处理。这些规则说通过编译对应的源文件来更新每个“.o”文件的。如果源文件或任何作为先决条件命名的头文件比目标文件更近期，或者目标文件不存在，则必须进行重新编译。
+
+处理其他规则是因为它们的目标作为终点目标的先决条件出现。如果其他规则不被终点目标（或重点目标所依赖的任何东西，等等）所依赖，则不处理该规则，除非您告诉 make 这样做（例如使用 `make clean` 等命令）。
+
+在重新编译目标文件之前，make 会考虑更新其先决条件、源文件和头文件。示例中的 makefile 没有指定要为它们做的任何事情——“.c” 和 “.h” 文件不是任何规则的目标——所以 make 不会为这些文件做任何事情。但是 make 会根据它们自己的规则更新自动生成的 C 程序，比如 Bison 或 Yacc 制作的程序。
+
+重新编译需要的目标文件后，make 决定是否重新链接 edit。如果文件 edit 不存在，或者任何目标文件比 edit 更新，则必须这样做。如果目标文件刚刚重新编译，它现在比 edit 更新，因此 edit 被重新链接。
+
+因此，如果我们更改文件 insert.c 并运行 make，make 将编译该文件以更新 insert.o，然后链接 edit。如果我们更改文件 command.h 并运行 make，make 将重新编译目标文件 kbd.o、command.o 和 file.o，然后链接文件 edit。
+
+## 2.4 使用变量简化 makefile
+
+在我们的示例中，我们必须在 edit 规则中列出所有目标文件两次（此处重复示例）：
+
+```makefile
+edit : main.o kbd.o command.o display.o \
+              insert.o search.o files.o utils.o
+        cc -o edit main.o kbd.o command.o display.o \
+                   insert.o search.o files.o utils.o
+```
+
+[6 How to Use Variables](https://www.gnu.org/software/make/manual/make.html#Using-Variables)
+
+
 
 ## 2.5 让 make 推断 recipes
 
