@@ -3144,39 +3144,305 @@ make的退出状态始终是三个值之一：
 
 如果您不使用 '`-f`' 或 '`--file`' 标志，则默认是按顺序尝试 *GNUmakefile*、*makefile*和*Makefile*，三个存在或可以制作的第一个（请参阅 [3 Writing Makefiles](https://www.gnu.org/software/make/manual/make.html#Makefiles)）。
 
-## 9.2 用于指定终点的参数
+## 9.2 用于指定终点目标的参数
 
-终点(goals)是 *make* 最终应该努力更新的目标(target)。如果其他目标作为终点的先决条件或目标先决条件的先决条件等出现，它们也会更新。
+终点目标(goals)是 *make* 最终应该努力更新的目标(target)。如果其他目标作为终点目标的先决条件或终点目标的先决条件的先决条件等出现，它们也会更新。
 
-## 9.3 而不是执行配方
+默认情况下，终点目标是 makefile 中的第一个目标（不包括以句点开头的目标）。因此，makefile 通常是这样编写的：以便第一个目标用于编译它们描述的整个程序。**如果 makefile 中的第一个规则有多个目标，则只有规则中的第一个目标成为默认目标，而不是整个列表**。您可以在 makefile 中使用 `.DEFAULT_GOAL` 变量来管理默认终点目标的选择（请参阅 [6.14 Other Special Variables](https://www.gnu.org/software/make/manual/make.html#Special-Variables)）。
+
+您还可以使用命令行参数给 *make* 指定一个或多个不同的终点目标。使用终点目标的名称作为参数。如果您指定了多个终点目标，*make* 按照您命名它们的顺序依次处理每个终点目标。
+
+makefile 中的任何目标都可以指定为终点目标（除非它以 '`-`' 开头或包含 '`=`'，在这种情况下，它将分别被解析为切换开关(switch)或变量定义）。如果 *make* 可以找到说明如何制作它们的隐式规则，则即使不在 makefile 中的目标也可以指定。
+
+*Make* 会将特殊变量 `MAKECMDGOALS` 设置为您在命令行上指定的终点目标列表。如果命令行上没有给出终点目标，则此变量为空。请注意，此变量应仅在特殊情况下使用。
+
+适当使用的一个示例是避免在 *clean* 规则期间包含 *.d* 文件（请参阅 [4.14 Generating Prerequisites Automatically](https://www.gnu.org/software/make/manual/make.html#Automatic-Prerequisites)），因此 make 不会只是为了立即再次删除它们而创建它们：
+
+```makefile
+sources = foo.c bar.c
+
+ifeq (,$(filter clean,$(MAKECMDGOALS))
+include $(sources:.c=.d)
+endif
+```
+
+指定终点目标的一种用途是假如您只想编译程序的一部分，或者只想编译几个程序中的一个。将您要重新制作的每个文件指定为终点目标。例如，考虑一个包含多个程序的目录，其吧makefile 如下所示：
+
+```makefile
+.PHONY: all
+all: size nm ld ar as
+```
+
+如果您正在处理程序 `size`，您可能想键入 “`make size`”，以便仅重新编译该程序的文件。
+
+指定终点目标的另一个用途是制作通常不制作的文件。例如，可能有一个调试输出的文件，或者一个专门为测试而编译的程序版本，它在 makefile 中有一个不是默认目标的先决条件的规则。
+
+指定终点目标的另一个用途是运行与假目标（请参阅 [4.6 Phony Targets](https://www.gnu.org/software/make/manual/make.html#Phony-Targets)）或空目标（请参阅 [4.8 Empty Target Files to Record Events](https://www.gnu.org/software/make/manual/make.html#Empty-Targets)）关联的配方。许多 makefile 包含一个名为 “*clean*” 的假目标，它会删除除源文件之外的所有内容。当然，只有当您使用 “`make clean`” 明确请求时，才会这样做。以下是典型的假目标和空目标名称列表。请参阅 [16.6 Standard Targets for Users](https://www.gnu.org/software/make/manual/make.html#Standard-Targets)，以获取 GNU 软件包使用的所有标准目标名称的详细列表。
+
+- all
+    创建 makefile 知道的所有顶级目标。
+
+- clean
+    删除通常由运行 make 创建的所有文件。
+
+- mostlyclean
+    类似 “*clean*”，但可能会避免删除一些人们通常不想重新编译的文件。例如，GCC的 “*mostlyclean*” 目标不会删除 *libgcc.a*，因为很少需要重新编译它，并且重新编译需要大量时间。
+
+- distclean<br>realclean<br>clobber
+    这些目标中的任何一个都可能被定义，用来删除比 “*clean*” 更多的文件。例如，这将删除您通常为编译做准备而创建的配置文件或链接，即使 makefile 本身无法创建这些文件。
+
+- install
+    将可执行文件复制到用户通常搜索命令的目录中；将可执行文件使用的任何辅助文件复制到将查找它们的目录中。
+
+- print
+    打印已更改的源文件的列表。
+
+- tar
+    创建源文件的tar文件。
+
+- shar
+    创建源文件的 shell 存档（shar文件）。
+
+- dist
+    创建源文件的分发文件。这可能是tar文件、shar文件或上述文件之一的压缩版本，甚至不止一个。
+
+- TAGS
+    更新此程序的标签表。
+
+- check<br>test
+    对这个 makefile 构建的程序执行自我测试。
+
+## 9.3 请不要执行配方
 
 *makefile* 告诉 *make* 如何判断目标是否是最新的，以及如何更新每个目标。但你并不是每次都想更新目标。某些选项指定 *make* 的其他活动。
 
 - ‘-n’<br>‘--just-print’<br>‘--dry-run’<br>‘--recon’
+    “无操作”。导致 make 打印使目标更新所需的配方，但实际上并没有执行它们。请注意，即使使用此标志，某些配方仍在执行（请参阅 [5.7.1 How the MAKE Variable Works](https://www.gnu.org/software/make/manual/make.html#MAKE-Variable)）。此外，更新包含的 makefile 所需的任何配方仍在执行（请参阅 [3.5 How Makefiles Are Remade](https://www.gnu.org/software/make/manual/make.html#Remaking-Makefiles)）。
 
 - ‘-t’<br>‘--touch’
+    “创建”。将目标标记为最新，而不实际更改它们。换句话说，*make* 假装更新目标，但并没有真正更改其内容；相反，只更新它们的修改时间。
 
 - ‘-q’<br>‘--question’
+    “质疑”。静默检查目标是否是最新的，但不执行配方；退出代码显示是否需要任何更新。
 
 - ‘-W file’<br>‘--what-if=file’<br>‘--assume-new=file’<br>‘--new-file=file’
+    “如果”。每个 “`-W`” 标志后面都有一个文件名。给定文件的修改时间由 make 标记为当前时间，尽管实际修改时间保持不变。您可以将 “`-W`” 标志与 “`-n`” 标志结合使用，以查看如果您要修改特定文件会发生什么。
+
+使用 '`-n`' 标志，*make* 打印它通常执行的配方，但实际上并没有执行它们。
+
+使用 “`-t`” 标志，*make* 忽略规则中的配方，并对需要重新制作的每个目标使用（实际上）命令 `touch`。`touch` 命令也被打印出来，除非使用 “`-s`” 或 `.SILENT`。为了速度，*make* 实际上并不调用程序 `touch`。它直接完成工作。 
+
+使用 “`-q`” 标志，*make* 不打印任何内容，也不执行配方，但当且仅当要考虑的目标已经是最新的时，它返回的退出状态代码为零。如果退出状态为 **1**，则需要进行一些更新。如果 *make* 遇到错误，则退出状态为 **2**，因此您可以区分错误和不是最新的目标。
+
+在同一个 make 调用中使用这三个标志中的一个以上是错误的。
+
+“`-n`”、“`-t`” 和 “`-q`” 选项不影响以 `+` 字符开头或包含字符串`$(MAKE)` 或 `${MAKE}` 的配方行。请注意，无论这些选项如何，仅运行包含 `+` 字符或字符串 `$(MAKE)` 或 `${MAKE}` 的行。同一规则中的其他行不运行，除非这些行也以 '`+`' 开头或包含 `$(MAKE)` 或 `${MAKE}` 的配方行。参阅 [5.7.1 How the MAKE Variable Works](https://www.gnu.org/software/make/manual/make.html#MAKE-Variable)
+
+'`-t`' 标志防止伪目标 (请参阅 [4.6 Phony Targets](https://www.gnu.org/software/make/manual/make.html#Phony-Targets)) 被更新，除非存在以 '`+`' 开头或包含 `$(MAKE)` 或 `${MAKE}` 的配方行。
+
+'`-W`'标志提供了两个功能：
+- 如果您还使用 "`-n`" 或 "`-q`" 标志，您可以看到如果您要修改某些文件，*make* 会做什么。
+- 如果没有 "`-n`" 或 "`-q`" 标志，当 *make* 实际执行配方时，'`-W`'标志可以指示 *make* 就好像某些文件已被修改一样，而无需实际运行这些文件的配方。
+
+请注意，选项 '`-p`' 和 '`-v`' 允许您获取有关 make 或正在使用的 makefile 的其他信息。[9.8 Summary of Options](https://www.gnu.org/software/make/manual/make.html#Options-Summary)
 
 ## 9.4 避免某些文件的重新编译
 
+有时您可能已经更改了一个源文件，但您不想重新编译依赖于它的所有文件。例如，假设您向许多其他文件依赖的头文件添加了一个宏或声明。保守地说，*make* 假定头文件中的任何更改都需要重新编译所有依赖文件，但是你知道它们不需要重新编译，你不浪费时间等待它们编译。
+
+如果您在更改头文件之前预料到问题，您可以使用 “`-t`” 标志。此标志告诉 *make* 不要运行规则中的配方，而是通过更改其最后修改日期来将目标标记为最新。您将遵循以下过程：
+
+1. 使用命令 '`make`' 重新编译真正需要重新编译的源文件，确保目标文件在开始之前是最新的。
+2. 在头文件中进行更改。
+3. 使用命令 '`make -t`' 将所有目标文件标记为最新。下次运行 *make* 时，头文件中的更改不会导致任何重新编译。
+
+如果您已经在某些文件确实需要重新编译的时候更改了头文件，那么做上述步骤已经太晚了。相反，您可以使用 “`-o file`” 标志，它将指定的文件标记为 “old”（请参阅 [9.8 Summary of Options](https://www.gnu.org/software/make/manual/make.html#Options-Summary)）。这意味着文件本身不会被重做，并且不会因为此原因重做任何其他内容。请遵循以下过程：
+
+1. 使用 "`make -o headerfile`" 重新编译由于与特定头文件无关的原因需要编译的源文件。如果涉及多个头文件，请为每个头文件使用单独的 “`-o`” 选项。
+2. 使用 “`make -t`” 创建所有目标文件。
+
 ## 9.5 覆盖变量
+
+包含 “`=`” 的**参数**指定变量的值: “`v=x`” 将变量 `v` 的值设置为 `x`。如果以这种方式指定值，则 makefile 中相同变量的所有普通赋值都将被忽略; 我们说它们**已被命令行参数覆盖**。
+
+使用此工具的最常见方法是将额外的标志传递给编译器。例如，在正确编写的 makefile 中，变量 `CFLAGS` 包含在运行C编译器的每个配方中，因此文件 *foo.c* 将被编译如下:
+
+```makefile
+cc -c $(CFLAGS) foo.c
+```
+
+因此，您为 `CFLAGS` 设置的任何值都会影响发生的每次编译。makefile 可能指定 `CFLAGS` 的常用值，如下所示：
+
+```makefile
+CFLAGS=-g
+```
+
+每次运行make时，如果需要，可以覆盖此值。例如，如果你键入 `make CFLAGS='-g -O'`，每个C编译将用 `cc -c -g -O` 完成。(这也说明了在覆盖变量时，如何在 shell 中使用引号将空格和其他特殊字符括在变量的值中。)
+
+变量 `CFLAGS` 只是存在的许多、您可以通过这种方式更改它们的标准变量之一。有关完整列表，请参阅 [10.3 Variables Used by Implicit Rules](https://www.gnu.org/software/make/manual/make.html#Implicit-Variables)。
+
+您还可以对 makefile 进行编程，以查看您自己的其他变量，从而使用户能够通过更改变量来控制 makefile 工作方式的其他方面。
+
+使用命令行参数覆盖变量时，可以定义*递归展开*变量或*简单展开*变量。上面显示的示例创建了一个*递归展开*变量; 要创建一个*简单展开*变量，请编写 “`:=`” 或 “`::=`” 而不是 “`=`”。但是，**除非您想在指定的值中包含变量引用或函数调用，否则创建哪种类型的变量没有区别**。
+
+有一种方法，makefile 可以更改您已覆盖的变量。这是使用 `override` 指令，即 `override variable = value`(见 [6.7 The override Directive](https://www.gnu.org/software/make/manual/make.html#Override-Directive))。
 
 ## 9.6 测试一段程序的编译
 
+通常，当执行 shell 命令时发生错误时，*make* 立即放弃，返回非零状态。不会为任何目标执行进一步的配方。该错误意味着无法正确重做终点目标，并且 *make* 在知道后立即报告。
+
+你可能不仅仅是想要编译刚刚更改的程序。相反，您宁愿 *make* 尝试编译每个可以尝试的文件，以向您显示尽可能多的编译错误。
+
+在这些情况下，您应该使用 “`-k`” 或 “`--being-go`” 标志。这告诉 *make* 继续考虑待处理目标的其他先决条件，如果有必要，在它放弃并返回非零状态之前重新创建它们。例如，在编译一个目标文件时出错后，“`make -k`” 将继续编译其他目标文件，即使 *make* 已经知道链接它们是不可能的。除了在失败的 shell 命令后继续，“`make -k`” 在发现它不知道如何制作目标或先决条件文件后会尽可能地继续。这总是会导致错误消息，但如果没有 “`-k`”，这是一个致命的错误（请参阅 [9.8 Summary of Options](https://www.gnu.org/software/make/manual/make.html#Options-Summary)）。
+
+*make* 的通常行为假设您的目的是使终点目标保持最新; 一旦 *make* 了解到这是不可能的，它不妨立即报告失败。'`-k`' 标志表示，真正的目的是尽可能多地测试一下程序中所做的更改，也许是为了找到几个独立的问题，以便您可以在下一次尝试编译之前将它们全部更正。这就是 [Emacs](https://www.gnu.org/software/emacs/) 的 `M-x compile` 命令默认传递 '`-k`' 标志的原因。
+
 ## 9.7 临时文件
+
+在某些情况下，*make* 需要创建自己的临时文件。*make*，包括所有递归调用的 *make* 实例，在运行时不得干扰这些文件。
+
+如果设置了环境变量 `MAKE_TMPDIR`，则 *make* 创建的所有临时文件都将放置在那里。
+
+如果未设置 `MAKE_TMPDIR`，则将使用当前操作系统的临时文件的标准位置。对于 POSIX 系统，这将是在 `TMPDIR` 环境变量中设置的位置，否则将使用系统默认位置（例如 `/tmp`）。在 Windows 上，首先检查 `TMP`，然后检查 `TEMP`，然后检查 `TMPDIR`，最后使用系统默认临时文件位置。
+
+请注意，此目录必须已经存在，否则 *make* 将失败：*make* 不会尝试创建它。
+
+这些变量不能从 makefile 中设置：GNU *make* 必须在开始读取 makefile 之前可以访问到此位置。
 
 ## 9.8 选项汇总
 以下是 *make* 理解的所有选项的表格：
 
-`-b`<br>`-m`<br>为了与其他版本的make兼容，将忽略这些选项。
+- `-b`<br>`-m`
+    为了与其他版本的make兼容，将忽略这些选项。
 
-`-B`<br>`--always-make`<br>认为所有目标都已过时。GNU *make* 继续使用正常算法来考虑目标及其先决条件；然而，无论其先决条件的状态如何，所考虑的所有目标都会重新生成。为了避免无限递归，如果将 `MAKE_RESTARTS`（请参阅 [6.14 Other Special Variables](https://www.gnu.org/software/make/manual/make.html#Special-Variables)）设置为大于 0 的数字，则在考虑是否重新生成 *makefile* 时会禁用此选项（请参阅 [3.5 How Makefiles Are Remade](https://www.gnu.org/software/make/manual/make.html#Remaking-Makefiles)）。
+- `-B`<br>`--always-make`
+    认为所有目标都已过时。GNU *make* 继续使用正常算法来考虑目标及其先决条件；然而，无论其先决条件的状态如何，所考虑的所有目标都会重新生成。为了避免无限递归，如果将 `MAKE_RESTARTS`（请参阅 [6.14 Other Special Variables](https://www.gnu.org/software/make/manual/make.html#Special-Variables)）设置为大于 0 的数字，则在考虑是否重新生成 *makefile* 时会禁用此选项（请参阅 [3.5 How Makefiles Are Remade](https://www.gnu.org/software/make/manual/make.html#Remaking-Makefiles)）。
 
-`-C dir`
-`--directory=dir`
+- `-C dir`<br>`--directory=dir`
+    在读取 makefile 之前更改到目录 *dir*。如果指定了多个 “`-C`” 选项，则每个选项都相对于前一个进行解释：`-C / -C etc` 等价于 `-C /etc`。这通常与 make 的递归调用一起使用。参阅 [5.7 Recursive Use of make](https://www.gnu.org/software/make/manual/make.html#Recursion)
+
+- `-d`
+    除了正常处理之外，还打印调试信息。调试信息说明正在考虑重新创建哪些文件，正在比较哪些文件时间，与什么结果进行比较，哪些文件实际上需要重新创建，考虑了哪些隐式规则，应用了哪些规则——关于make如何决定做什么的所有有趣的事情。`-d`选项等价于'`--debug=a`'（见下文）。
+
+- `--debug[=options]`
+    除正常处理外，还打印调试信息。可以选择各种级别和类型的输出。在没有参数的情况下，打印 “basic” 级别的调试。可能的参数如下; 只考虑第一个字符，并且值必须以逗号或空格分隔。
+    * a (all)
+        启用所有类型的调试输出。这相当于使用'`-d`'。
+    * b (basic)
+        基本调试打印每个被发现过期的目标，以及构建是否成功。
+    * v (verbos)
+        “basic”之上的级别；包括有关解析了哪些 makefile 的消息、不需要重建的先决条件等。此选项还启用“basic”消息。
+    * i (implicit)
+        打印描述每个目标的隐式规则搜索的消息。此选项还启用“basic”消息。
+    * j (jobs)
+        打印提供有关调用特定子命令的详细信息的消息。
+    * m (makefile)
+        默认情况下，在尝试重新生成 makefil e时不会启用上述消息。此选项也会在重建 makefile 时启用消息。请注意，“all”选项确实启用了此选项。此选项还启用了“basic”消息。
+    * p (print)
+        打印要执行的配方，即使配方通常是静默的(由于 `.SILENT` 或 ‘`@`’). 还打印定义配方的 makefile 名称和行号。
+    * w (why)
+        通过显示哪些先决条件比目标更新，解释为什么必须重新创建每个目标。
+    * n (none)
+        禁用当前启用的所有调试。如果在此之后遇到其他调试标志，它们仍然会生效。
+
+- `-e`<br>`--environment-overrides`
+    从环境中获取的变量优先于 makefile 中的变量。参阅 [6.10 Variables from the Environment](https://www.gnu.org/software/make/manual/make.html#Environment)
+
+- `-E string`<br>`--eval=string`
+    评估 *string* 作为makefile语法的正确性。这是 eval 函数的命令行版本 (请参阅 [8.10 The eval Function](https://www.gnu.org/software/make/manual/make.html#Eval-Function))。在定义默认规则和变量之后、但在读取任何 makefile 之前执行评估。
+
+- `-f file`<br>`--file=file`<br>`--makefile=file`
+    将名为 *file* 的文件作为 makefile 读取。参阅 [3 Writing Makefiles](https://www.gnu.org/software/make/manual/make.html#Makefiles)
+
+- `-h`<br>`--help`
+    提醒您 make 理解的选项，然后退出。
+
+- `-i`<br>`--ignore-errors`
+    忽略为重制作文件而执行的配方中的所有错误。参阅 [5.5 Errors in Recipes](https://www.gnu.org/software/make/manual/make.html#Errors)
+
+- `-I dir`<br>`--include-dir=dir`
+    指定用于搜索包含的 makefile 的目录 *dir*。请参阅 [3.3 Including Other Makefiles](https://www.gnu.org/software/make/manual/make.html#Include)。如果使用多个“`-I`”选项来指定多个目录，则按照指定的顺序搜索这些目录。如果目录 *dir* 是单个破折号（-），则将丢弃到该点之前的任何已指定目录（包括默认目录路径）。您可以通过 `.INCLUDE_DIRS` 变量检查要搜索的当前目录列表。
+
+- `-j [jobs]`<br>`--jobs[=jobs]`
+    指定要同时运行的配方 (作业) 数。在没有参数的情况下，make 会同时运行尽可能多的配方。如果有多个 '-j' 选项，最后一个是有效的。有关如何运行配方的更多信息，请参见 [5.4 Parallel Execution](https://www.gnu.org/software/make/manual/make.html#Parallel)。请注意，在 MS-DOS 上忽略此选项。
+
+- `--jobserver-style=[style]`
+    选择要使用的 jobserver 的样式。此选项仅在启用并行构建时才有效 (请参阅 [5.4 Parallel Execution](https://www.gnu.org/software/make/manual/make.html#Parallel))。在 POSIX 系统上，*style* 可以是 fifo(默认) 或 pipe 之一。在 Windows 上，唯一可接受的样式是 sem(默认)。如果您需要使用旧版本的GNU make，或者需要特定 jobserver 样式的其他工具，则此选项非常有用。
+
+- `-k`<br>`--keep-going`
+    出错后尽可能继续。虽然失败的目标和依赖于它的目标不能被重做，但是这些目标的其他先决条件可以被完全相同地处理。参阅 [9.6 Testing the Compilation of a Program](https://www.gnu.org/software/make/manual/make.html#Testing)
+
+- `-l [load]`<br>`--load-average[=load]`<br>`--max-load[=load]`
+    指定如果有其他配方正在运行且平均负载至少为 *load* (浮点数)，则不应启动任何新配方。如果没有参数，则移除先前的负载限制。参阅 [5.4 Parallel Execution](https://www.gnu.org/software/make/manual/make.html#Parallel)
+
+- `-L`<br>`--check-symlink-times`
+    在支持符号链接(symbolic links)的系统上，此选项使 *make* 除了考虑任何符号链接上的时间戳以外，还考虑 符号链接引用的文件上的时间戳。提供此选项时，文件和符号链接两者中的最新时间戳将作为此目标文件的修改时间。
+
+- `-n`<br>`--just-print`<br>`--dry-run`<br>`--recon`
+    打印将要执行的配方，但不要执行它（除非在某些情况下）。参阅 [9.3 Instead of Executing Recipes](https://www.gnu.org/software/make/manual/make.html#Instead-of-Execution)
+
+- `-o file`<br>`--old-file=file`<br>`--assume-old=file`
+    即使文件 *file* 比其先决条件更旧也不要重做, 也不要因为 *file* 的更改而重做任何东西。本质上，文件被视为非常旧，其规则被忽略。参阅 [9.4 Avoiding Recompilation of Some Files](https://www.gnu.org/software/make/manual/make.html#Avoiding-Compilation)
+
+- `-O[type]`<br>`--output-sync[=type]`
+
+- `-p`<br>`--print-data-base`
+    打印读取 makefile 产生的数据库（规则和变量值）；然后照常执行或按其他指定执行。这也打印 `-v` 开关给出的版本信息（见下文）。要打印数据库而不尝试重新制作任何文件，请使用 `make-qp`。要打印预设规则和变量的数据库，请使用 `make -p -f /dev/null`。数据库输出包含配方和变量定义的文件名和行号信息，因此它可以成为复杂环境中有用的调试工具。
+
+- `-q`<br>`--question`
+    “提问模式”。不会运行任何配方或打印任何内容；仅仅返回退出状态：如果指定的目标已经是最新的，则返回为零，如果需要重新制作，则返回 1，如果遇到错误，则返回 2。参阅 [9.3 Instead of Executing Recipes](https://www.gnu.org/software/make/manual/make.html#Instead-of-Execution)
+
+- `-r`<br>`--no-builtin-rules`
+    消除对内置隐式规则的使用（请参阅 [10 Using Implicit Rules](https://www.gnu.org/software/make/manual/make.html#Implicit-Rules)）。您仍然可以通过编写模式规则来定义自己的规则（请参阅 [10.5 Defining and Redefining Pattern Rules](https://www.gnu.org/software/make/manual/make.html#Pattern-Rules)）。“`-r`” 选项还清除了后缀规则的默认后缀列表（请参阅 [10.7 Old-Fashioned Suffix Rules](https://www.gnu.org/software/make/manual/make.html#Suffix-Rules)）。但是您仍然可以使用 `.SUFFIXES` 的规则定义自己的后缀，然后定义自己的后缀规则。请注意，只有**规则**受到 `-r` 选项的影响；默认变量仍然有效（请参阅 [10.3 Variables Used by Implicit Rules](https://www.gnu.org/software/make/manual/make.html#Implicit-Variables)）；请参阅下面的“`-R`”选项。
+
+- `-R`<br>`--no-builtin-variables`
+    消除使用内置规则特定变量（请参阅 [10.3 Variables Used by Implicit Rules](https://www.gnu.org/software/make/manual/make.html#Implicit-Variables)）。当然，您仍然可以定义自己的变量。“`-R`” 选项也会自动启用 “`-r`” 选项（见上文），因为没有对隐式规则使用的变量进行任何定义的隐式规则是没有意义的。
+
+- `-s`<br>`--silent`<br>`--quiet`
+    静默操作；不要在执行配方时打印配方。参阅 [5.2 Recipe Echoing](https://www.gnu.org/software/make/manual/make.html#Echoing)。
+
+- `-S`<br>`--no-keep-going`<br>`--stop`
+    取消 '`-k`' 选项的效果。这永远是不必要的，除非在递归 *make* 中，'`-k`'可能通过变量 `MAKEFLAGS` 从顶级 make 继承（请参阅 [5.7 Recursive Use of make](https://www.gnu.org/software/make/manual/make.html#Recursion)），或者如果您在环境中的 `MAKEFLAGS` 中设置'`-k`'。
+
+- `--shuffle[=mode]`
+    此选项使能对先决条件关系进行模糊测试。当启用并行性（`-j`）时，构建目标的顺序变得不那么确定。如果在 makefile 中没有完全声明先决条件，这可能会导致间歇性且难以追踪的构建失败。
+    '`--shuffle`' 选项强制 *make* 有目的地重新排序终点目标和先决条件，以便目标和先决条件之间的关系仍然有效，但给定目标的先决条件的排序被重新排序，如下所述。
+    此选项不会更改在自动变量中列出先决条件的顺序。
+    `.NOTPARALLE` 伪目标(pseudo-target)禁用该 makefile 的洗牌。还有任何包含 `.WAIT` 的先决条件列表将不会被洗牌。请参阅 [5.4.1 Disabling Parallel Execution](https://www.gnu.org/software/make/manual/make.html#Parallel-Disable)。
+    `--shuffle=` 选项接受这些值：
+    * random
+        随机选择一个种子用于随机洗牌。如果未指定模式，则默认为这个。所选种子也提供给sub-make命令。该种子包含在错误消息中，以便在以后的运行中可以重复使用，以重现问题或验证问题是否已解决。
+
+    * reverse
+        颠倒目标和先决条件的顺序，而不是随机洗牌。
+
+    * seed
+        使用使用指定种子值初始化的 “`random`” 洗牌。种子是一个整数。
+
+    * none
+        禁用洗牌。这否定了任何以前的'`--shuffle`'选项。
+
+- `-t`<br>`--touch`
+    touch 文件 (将它们标记为最新，而无需真正更改它们)，而不是运行它们的配方。这是用来假装配方已经完成，以愚弄未来的 *make* 调用。参阅 [9.3 Instead of Executing Recipes](https://www.gnu.org/software/make/manual/make.html#Instead-of-Execution)
+
+- `--trace`
+    显示用于执行 *make* 的跟踪信息。`-trace` 是 `--debug=print,why` 的简写
+
+- `-v`<br>`--version`
+    打印 make 程序的版本、版权，作者列表、没有授权的通知， 然后退出。
+
+- `-w`<br>`--print-directory`
+    在执行 makefile 之前和之后打印包含工作目录的消息。这对于跟踪来自复杂的、嵌套的递归 *make* 命令错误可能很有用。请参阅 [5.7 Recursive Use of make](https://www.gnu.org/software/make/manual/make.html#Recursion)。（实际上，您很少需要指定此选项，因为 *make* 会为您指定；请参阅 [5.7.4 The ‘--print-directory’ Option](https://www.gnu.org/software/make/manual/make.html#g_t_002dw-Option)）
+
+- `--no-print-directory`
+    禁用 `-w` 下的对工作目录的打印。当 `-w` 自动打开时，但您不希望看到额外的消息时，此选项很有用。参阅 [5.7.4 The ‘--print-directory’ Option](https://www.gnu.org/software/make/manual/make.html#g_t_002dw-Option)
+
+- `-W file`<br>`--what-if=file`<br>`--new-file=file`<br>`--assume-new=file`
+    假设目标 *file* 刚刚被修改。当与 '`-n`' 标志一起使用时，这会显示如果您要修改该文件会发生什么。如果没有 '`-n`'，它几乎与在运行make之前对给定文件运行 `touch` 命令相同，只是修改时间仅在 *make* 的想象中更改。参阅 [9.3 Instead of Executing Recipes](https://www.gnu.org/software/make/manual/make.html#Instead-of-Execution)
+
+- `--warn-undefined-variables`
+    每当 make 看到对未定义变量的引用时发出警告消息。当您尝试调试以复杂方式使用变量的 makefile 时，这会很有帮助。
+
 
 # 10 Using Implicit Rules
 
@@ -3740,3 +4006,23 @@ foolib(hack.o) foolib(kludge.o)
 ```
 
 您还可以在存档成员引用中使用 shell 样式的通配符。请参阅 [4.4 Using Wildcard Characters in File Names](https://www.gnu.org/software/make/manual/make.html#Wildcards)。例如，`foolib(*.o)` 展开到名称以“.o”结尾的 foolib 存档的所有现有成员；也许是 `foolib(hack.o) foolib(kludge.o)` 。
+
+# 16 Makefile公约
+
+## 16.6 用户的标准目标
+
+所有 GNU 程序在其 Makefile 中都应该有以下目标：
+
+- ‘all’
+- ‘install’
+- ‘install-html’<br>‘install-dvi’<br>‘install-pdf’<br>‘install-ps’
+- ‘uninstall’
+- ‘install-strip’
+- ‘clean’
+- ‘distclean’
+- ‘mostlyclean’
+- ‘maintainer-clean’
+- ‘TAGS’
+- ‘info’
+- ‘dvi’<br>‘html’<br>‘pdf’<br>‘ps’
+- ‘dist’
