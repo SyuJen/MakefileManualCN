@@ -41,7 +41,7 @@ make
 
 在本章中，我们将讨论一个简单的 *makefile*，该文件描述如何编译和链接由8个C源文件和3个头文件组成的文本编辑器。*makefile* 还可以告诉 *make* 如何在明确要求时运行其他命令（例如，作为清理操作删除某些文件）。要查看生成文件的更复杂示例，请参阅 [Appendix C Complex Makefile Example](https://www.gnu.org/software/make/manual/make.html#Complex-Makefile)。
 
-当 *make* 重新编译编辑器时，必须重新编译每个更改过的C源文件。如果头文件发生了更改，则必须重新编译包含该头文件的每个C源文件，以确保安全。每次编译都会生成一个与源文件相对应目标文件。最后，如果重新编译了任何源文件，则所有对象文件，无论是新创建的还是从以前的编译中保存的，都必须链接在一起，以生成新的可执行编辑器（译者注，这里原文就是 new executable editor，虽然我感觉 editor 这个词怪怪的）。
+当 *make* 重新编译编辑器时，必须重新编译每个更改过的C源文件。如果头文件发生了更改，则必须重新编译包含该头文件的每个C源文件，以确保安全。每次编译都会生成一个与源文件相对应目标文件。最后，如果重新编译了任何源文件，则所有目标文件，无论是新创建的还是从以前的编译中保存的，都必须链接在一起，以生成新的可执行编辑器（译者注，这里原文就是 new executable editor，虽然我感觉 editor 这个词怪怪的）。
 
 ## 2.1 一条规则的样式
 
@@ -147,7 +147,7 @@ make 读取当前目录中的 makefile 并从处理第一条规则开始。在�
 
 ## 2.4 使用变量简化 makefile
 
-在我们的示例中，我们必须在 edit 规则中列出所有目标文件两次（此处重复示例）：
+在我们的示例中，我们必须在 edit 规则中列出所有目标文件两次（此处重复）：
 
 ```makefile
 edit : main.o kbd.o command.o display.o \
@@ -156,24 +156,59 @@ edit : main.o kbd.o command.o display.o \
                    insert.o search.o files.o utils.o
 ```
 
-[6 How to Use Variables](https://www.gnu.org/software/make/manual/make.html#Using-Variables)
+这种重复很容易出错；如果一个新的目标文件被添加到系统中，我们可能会将其添加到一个列表中而忘记另一个列表。我们可以通过使用变量来消除风险并简化 makefile。变量允许单次定义文本字符串，然后在多处替换。参阅 [6 How to Use Variables](https://www.gnu.org/software/make/manual/make.html#Using-Variables)。
 
-
-
-## 2.5 让 make 推断 recipes
-
-没有必要详细说明编译单个C源文件的方法，因为 `make` 可以弄清楚它们：它有一个隐含的规则，可以使用 `cc-c` 命令从相应命名的 . c文件中更新 .o文件。例如，它将使用recipe `cc-c main.c-o main.o` 将main.c 编译为 main.o。
-
-[Using Implicit Rules](https://www.gnu.org/software/make/manual/make.html#Implicit-Rules)
-
-当以这种方式自动使用“. c”文件时，此 . c文件也会自动添加到prerequisite列表中。因此，我们可以从prerequisite中省略 .c文件，前提是我们省略了recipe。
+每个 makefile 的标准做法是有一个名为 *objects*, *OBJECTS*, *objs*, *OBJS*, *obj* 或 *OBJ* 的变量，它是所有目标文件名的列表。我们将在 makefile 中用这样的行定义这样一个变量 *objects*：
 
 ```makefile
 objects = main.o kbd.o command.o display.o \
-    insert.o search.o files.o utils.o
+          insert.o search.o files.o utils.o
+```
+
+然后，我们要放置目标文件名列表的每个地方，我们可以通过写入 `$(objects)` 来替换变量的值，参阅 [6 How to Use Variables](https://www.gnu.org/software/make/manual/make.html#Using-Variables)。
+
+以下是当您为目标文件使用变量时完整的简单 makefile 的外观：
+
+```makefile
+objects = main.o kbd.o command.o display.o \
+          insert.o search.o files.o utils.o
 
 edit : $(objects)
-    cc -o edit $(objects)
+        cc -o edit $(objects)
+main.o : main.c defs.h
+        cc -c main.c
+kbd.o : kbd.c defs.h command.h
+        cc -c kbd.c
+command.o : command.c defs.h command.h
+        cc -c command.c
+display.o : display.c defs.h buffer.h
+        cc -c display.c
+insert.o : insert.c defs.h buffer.h
+        cc -c insert.c
+search.o : search.c defs.h buffer.h
+        cc -c search.c
+files.o : files.c defs.h buffer.h command.h
+        cc -c files.c
+utils.o : utils.c defs.h
+        cc -c utils.c
+clean :
+        rm edit $(objects)
+```
+
+## 2.5 让 make 推断 recipes
+
+没有必要详细说明编译单个C源文件的方法，因为 `make` 可以弄清楚它们：它有一个隐含的规则，可以使用 `cc -c` 命令从相应命名的 .c 文件中更新 .o 文件。例如，它将使用配方 `cc -c main.c -o main.o` 将 main.c 编译为 main.o。因此，我们可以从目标文件的规则中省略这些方法。请参阅 [10 Using Implicit Rules](https://www.gnu.org/software/make/manual/make.html#Implicit-Rules)。
+
+当以这种方式自动使用 “.c” 文件时，它也会自动添加到先决条件列表中。因此，只要我们省略配方，我们就可以从先决条件中省略 “.c” 文件。
+
+这是整个示例，其中包含这两个更改，以及上面建议的变量 *objects*：
+
+```makefile
+objects = main.o kbd.o command.o display.o \
+          insert.o search.o files.o utils.o
+
+edit : $(objects)
+        cc -o edit $(objects)
 
 main.o : defs.h
 kbd.o : defs.h command.h
@@ -186,12 +221,16 @@ utils.o : defs.h
 
 .PHONY : clean
 clean :
-    rm edit $(objects)
+        rm edit $(objects)
 ```
+
+这就是我们在实际编写 makefile 的方式。（与 “clean” 相关的复杂情况在 [4.6 Phony Targets](https://www.gnu.org/software/make/manual/make.html#Phony-Targets) 和 [5.5 Errors in Recipes](https://www.gnu.org/software/make/manual/make.html#Errors) 中描述。
+
+因为隐式规则非常方便，所以它们很重要。你会看到它们经常被使用。
 
 ## 2.6 Makefile的另一种形式
 
-当 makefile 的 object **仅由隐式规则创建时**，makefile的另一种风格是可能的。在这种makefile风格中，可以按prerequisites而不是target对条目进行分组。
+当 makefile 的目标文件 **仅由隐式规则创建时**，可以使用 makefile 的另一种风格。在这种 makefile 风格中，可以按 prerequisites 而不是 target 对条目进行分组。
 
 ```makefile
 objects = main.o kbd.o command.o display.o \
@@ -205,13 +244,22 @@ kbd.o command.o files.o : command.h
 display.o insert.o search.o files.o : buffer.h
 ```
 
-这种方式不一定更好。
+这里 *defs.h* 作为所有目标文件的先决条件给出；*command.h* 和 *buffer.h* 是它们列出的特定目标文件的先决条件。
+
+这是否更好是一个品味问题：它更紧凑，但有些人不喜欢它，因为他们发现将每个目标的所有信息放在一个地方更清晰。
 
 ## 2.7 清理目录的规则
 
-编译程序 并不是编写 makefile 的唯一目标，如何删除所有目标文件和可执行文件，以便目录是“干净的”也是其中之一。
+编译程序并不是您编写规则唯一想要做的事情。Makefile 通常会告诉您除了编译程序之外如何做其他一些事情：例如，如何删除所有目标文件和可执行文件，以便目录是“干净的”。
 
-在实践中，我们可能希望以更复杂的方式编写规则来处理意料之外的情况。我们会使用 `.PHONY` ，这可以防止make被称为 _clean_ 的实际文件混淆，并导致它在rm出现错误的情况下继续运行。
+以下是我们如何编写一个 make 规则来清理我们的示例编辑器：
+
+```makefile
+clean:
+        rm edit $(objects)
+```
+
+在实践中，我们可能希望以更复杂的方式编写规则来处理意料之外的情况。我们会这样做：
 
 ```makefile
 .PHONY : clean
@@ -219,7 +267,11 @@ clean :
         -rm edit $(objects)
 ```
 
-像这样的规则不应该放在makefile的开头，因为我们不希望它默认运行。
+这可以防止 make 被称为 *clean* 的实际文件混淆，并导致它在 `rm` 出现错误的情况下继续运行。参阅 [4.6 Phony Targets](https://www.gnu.org/software/make/manual/make.html#Phony-Targets) 和 [5.5 Errors in Recipes](https://www.gnu.org/software/make/manual/make.html#Errors)。
+
+像这样的规则不应该放在 makefile 的开头，因为我们不希望它默认运行！因此，在示例 makefile 中，我们希望重新编译编辑器的 *edit* 规则保持为默认目标。
+
+由于 *clean* 不是 *edit* 的先决条件，如果我们给出不带参数的命令 “`make`”，则此规则根本不会运行。为了使规则运行，我们必须键入 “`make clean`”。请参阅 [9 How to Run make](https://www.gnu.org/software/make/manual/make.html#Running)。
 
 # 3 Writing Makefiles
 
@@ -693,7 +745,7 @@ print: foo.c bar.c
 kbd.o command.o files.o: command.h
 ```
 
-为上述三个对象文件中的每一个提供了一个附加的先决条件。它相当于写：
+为上述三个目标文件中的每一个提供了一个附加的先决条件。它相当于写：
 
 ```makefile
 kbd.o: command.h
@@ -758,7 +810,7 @@ bar.o : defs.h test.h
 $(objects) : config.h
 ```
 
-它可以插入或取出，而无需更改真正指定如何制作对象文件的规则，如果您希望间歇性地添加额外的先决条件，则可以方便地使用它。
+它可以插入或取出，而无需更改真正指定如何制作目标文件的规则，如果您希望间歇性地添加额外的先决条件，则可以方便地使用它。
 
 另一个问题是，可以使用传递给 *make* 的命令行参数中设置的变量来指定附加的先决条件（请参阅 [9.5 Overriding Variables](https://www.gnu.org/software/make/manual/html_node/Overriding.html)）。例如
 
@@ -767,7 +819,7 @@ extradeps=
 $(objects) : $(extradeps)
 ```
 
-意味着命令 “make extradeps=foo.h” 将把 foo.h 视为每个对象文件的先决条件，而普通的 “make” 则不会。
+意味着命令 “make extradeps=foo.h” 将把 foo.h 视为每个目标文件的先决条件，而普通的 “make” 则不会。
 
 如果目标的显式规则都没有配方，则搜索适用的隐式规则以找到一个（请参阅 [10 Using Implicit Rules](https://www.gnu.org/software/make/manual/html_node/Implicit-Rules.html)）。
 
@@ -852,7 +904,7 @@ bigoutput littleoutput : %output : text.g
 
 ## 4.14 自动生成先决条件
 
-在程序的 makefile 中，需要编写的许多规则通常只表示某个对象文件依赖于某个头文件。例如，如果 main.c 通过 `#include` 使用 defs.h ，那么您将编写：
+在程序的 makefile 中，需要编写的许多规则通常只表示某个目标文件依赖于某个头文件。例如，如果 main.c 通过 `#include` 使用 defs.h ，那么您将编写：
 
 ```makefile
 main.o: defs.h
@@ -919,7 +971,7 @@ include $(sources:.c=.d)
 ```
 （此示例使用替换变量引用将源文件 “foo.c bar.c” 的列表转换为先决条件生成文件 “foo.d bar.d” 的列表。有关替换引用的完整信息，请参阅 [6.3.1 Substitution References](https://www.gnu.org/software/make/manual/html_node/Substitution-Refs.html)。）由于 “.d” 文件与其他文件一样都是 makefile ，make 将根据需要重新制作它们，而无需您做进一步的工作。请参阅 [3.5 How Makefiles Are Remade](https://www.gnu.org/software/make/manual/html_node/Remaking-Makefiles.html)。
 
-请注意，“.d” 文件包含目标定义；您应该确保将 `include` 指令放在 makefile 中的第一个默认目标之后，或者冒着让随机对象文件成为默认目标的风险。请参阅 [2.3 How make Processes a Makefile](https://www.gnu.org/software/make/manual/html_node/How-Make-Works.html)。
+请注意，“.d” 文件包含目标定义；您应该确保将 `include` 指令放在 makefile 中的第一个默认目标之后，或者冒着让随机目标文件成为默认目标的风险。请参阅 [2.3 How make Processes a Makefile](https://www.gnu.org/software/make/manual/html_node/How-Make-Works.html)。
 
 # 5 在规则中编写配方
 规则的配方由一个或多个 shell 命令行组成，这些命令行将按照出现的顺序每次执行一个。通常，执行这些命令的结果是使规则的目标更新为最新。
@@ -1293,7 +1345,7 @@ clean:
 
 当发生一个 *make* 没有被告知要忽略的错误时，这意味着当前目标无法正确地重新生成，直接或间接依赖它的任何其他目标也无法正确地生成。由于这些目标的前提(precondition)尚未实现，因此不会执行这些目标的进一步的配方。
 
-通常情况下，*make* 会在这种情况下立即放弃，返回非零状态。但是，如果指定了“`-k`”或“`--keep-going`”标志，*make* 将继续考虑挂起目标的其他先决条件，如有必要，在放弃并返回非零状态之前对其进行重制。例如，在编译一个对象文件时出错后，“`make -k`”将继续编译其他对象文件，即使它已经知道无法链接它们。请参阅 [9.8 Summary of Options](https://www.gnu.org/software/make/manual/make.html#Options-Summary)。
+通常情况下，*make* 会在这种情况下立即放弃，返回非零状态。但是，如果指定了“`-k`”或“`--keep-going`”标志，*make* 将继续考虑挂起目标的其他先决条件，如有必要，在放弃并返回非零状态之前对其进行重制。例如，在编译一个目标文件时出错后，“`make -k`”将继续编译其他目标文件，即使它已经知道无法链接它们。请参阅 [9.8 Summary of Options](https://www.gnu.org/software/make/manual/make.html#Options-Summary)。
 
 通常的行为会假设您的目的是使指定的目标更新到最新；一旦 *make* 得知这是不可能的，它还不如立即报告失败。“`-k`”选项表示，真正的目的是测试程序中尽可能多的更改，也许是为了找到几个独立的问题，以便在下次尝试编译之前将其全部更正。这就是为什么默认情况下 Emacs(译者注，[GNU Emacs](https://www.gnu.org/software/emacs/) 是一款文本编辑器) 的`compile`命令会默认传递“`-k`”标志。
 
@@ -1302,7 +1354,7 @@ clean:
 ## 5.6 中断或终止make
 如果 *make* 在执行 *shell* 时收到致命信号，它可能会删除配方应该更新的目标文件。如果目标文件的上次修改时间自 *make* 第一次检查后发生了更改，则会执行此操作。
 
-删除目标的目的是确保在下次运行 *make* 时从头开始重新制作它。为什么会这样？假设您在编译器运行并且它已经开始写入对象文件 *foo.o* 时键入 `Ctrl-c`。`Ctrl-c`会终止编译器，导致一个不完整的文件，其上次修改时间比源文件 *foo.c* 新。但是 *make* 也会收到 `Ctrl-c` 信号并删除此不完整的文件。如果 *make* 没有这样做，那么下一次调用 *make* 时会认为 *foo.o* 不需要更新——当链接器试图链接一个对象文件时，会从链接器中产生一条奇怪的错误消息，其中一半丢失了。
+删除目标的目的是确保在下次运行 *make* 时从头开始重新制作它。为什么会这样？假设您在编译器运行并且它已经开始写入目标文件 *foo.o* 时键入 `Ctrl-c`。`Ctrl-c`会终止编译器，导致一个不完整的文件，其上次修改时间比源文件 *foo.c* 新。但是 *make* 也会收到 `Ctrl-c` 信号并删除此不完整的文件。如果 *make* 没有这样做，那么下一次调用 *make* 时会认为 *foo.o* 不需要更新——当链接器试图链接一个目标文件时，会从链接器中产生一条奇怪的错误消息，其中一半丢失了。
 
 您可以通过将特殊目标`.PRECIOUS`依赖于此目标文件，来防止以这种方式删除目标文件。
 
