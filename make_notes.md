@@ -3389,6 +3389,9 @@ $(origin variable)
 - ‘file’
     `variable` 由某个 *makefile* 定义
 
+- 'command line'
+    `variable` 在命令行上被定义
+
 - ‘override’
 
 - ‘automatic’
